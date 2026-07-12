@@ -77,12 +77,24 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
             replyPendingIntent
         ).addRemoteInput(remoteInput).build()
 
+        val openIntent = Intent(this, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+            putExtra("chatId", chatId)
+            putExtra("senderId", senderId)
+            putExtra("receiverId", receiverId)
+        }
+        val openPendingIntent = PendingIntent.getActivity(
+            this, 1, openIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
         // 4. Build the notification
         val notificationBuilder = NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_dialog_info) 
             .setContentTitle(title)
             .setContentText(messageBody)
             .setPriority(NotificationCompat.PRIORITY_HIGH) 
+            .setContentIntent(openPendingIntent)
             .addAction(replyAction) 
             .setAutoCancel(true)
 

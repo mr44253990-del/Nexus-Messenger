@@ -26,12 +26,16 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.credentials.CredentialManager
+import androidx.credentials.CustomCredential
+import androidx.credentials.GetCredentialRequest
 import androidx.datastore.preferences.core.edit
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -44,7 +48,10 @@ import kotlinx.coroutines.tasks.await
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.messaging.FirebaseMessaging
 import java.util.UUID
 
@@ -114,16 +121,22 @@ fun EBChatApp() {
 
   val startDestination = when {
       onboardingCompleted == false -> "onboarding"
-      auth.currentUser != null -> "chats"
+      auth.currentUser != null -> "home"
       else -> "login"
   }
 
-  val showBottomBar = currentRoute in listOf("chats", "community", "settings")
+  val showBottomBar = currentRoute in listOf("home", "chats", "community", "notifications", "settings")
 
   Scaffold(
     bottomBar = {
       if (showBottomBar) {
         NavigationBar {
+          NavigationBarItem(
+            icon = { Icon(Icons.Filled.Home, contentDescription = "Home") },
+            label = { Text("Home") },
+            selected = currentRoute == "home",
+            onClick = { navController.navigate("home") { popUpTo(0) } }
+          )
           NavigationBarItem(
             icon = { Icon(Icons.Filled.Chat, contentDescription = "Chats") },
             label = { Text("Chats") },
@@ -135,6 +148,12 @@ fun EBChatApp() {
             label = { Text("Community") },
             selected = currentRoute == "community",
             onClick = { navController.navigate("community") { popUpTo(0) } }
+          )
+          NavigationBarItem(
+            icon = { Icon(Icons.Filled.Notifications, contentDescription = "Notifications") },
+            label = { Text("Alerts") },
+            selected = currentRoute == "notifications",
+            onClick = { navController.navigate("notifications") { popUpTo(0) } }
           )
           NavigationBarItem(
             icon = { Icon(Icons.Filled.Settings, contentDescription = "Settings") },
@@ -153,6 +172,8 @@ fun EBChatApp() {
     ) {
       composable("onboarding") { OnboardingScreen(navController) }
       composable("login") { LoginScreen(navController) }
+      composable("home") { HomeFeedScreen(navController) }
+      composable("notifications") { NotificationsScreen(navController) }
       composable("forgot_password") { ForgotPasswordScreen(navController) }
       composable("chats") { ChatsScreen(navController) }
       composable("community") { CommunityScreen(navController) }
@@ -234,6 +255,43 @@ fun OnboardingScreen(navController: NavHostController) {
 }
 
 data class OnboardingPage(val title: String, val description: String, val color: Color)
+
+
+private fun webClientId(context: android.content.Context): String {
+  val resourceId = context.resources.getIdentifier("default_web_client_id", "string", context.packageName)
+  return if (resourceId != 0) context.getString(resourceId) else "404800892817-4ovh3uvpn9mhee3kgedub3sr1k00udg1.apps.googleusercontent.com"
+}
+
+private suspend fun signInWithGoogleCredential(context: android.content.Context): com.google.firebase.auth.AuthResult {
+  val googleIdOption = GetGoogleIdOption.Builder()
+    .setFilterByAuthorizedAccounts(false)
+    .setServerClientId(webClientId(context))
+    .build()
+  val request = GetCredentialRequest.Builder()
+    .addCredentialOption(googleIdOption)
+    .build()
+  val credential = CredentialManager.create(context).getCredential(context, request).credential
+  if (credential !is CustomCredential || credential.type != GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
+    throw IllegalStateException("Google did not return a valid ID token credential")
+  }
+  val googleIdTokenCredential = GoogleIdTokenCredential.createFrom(credential.data)
+  val firebaseCredential = GoogleAuthProvider.getCredential(googleIdTokenCredential.idToken, null)
+  return FirebaseAuth.getInstance().signInWithCredential(firebaseCredential).await()
+}
+
+private suspend fun ensureGoogleUserProfile(user: com.google.firebase.auth.FirebaseUser) {
+  val doc = FirebaseManager.firestore.collection("users").document(user.uid).get().await()
+  if (!doc.exists()) {
+    val displayName = user.displayName ?: user.email?.substringBefore('@') ?: "Nexus User"
+    val profile = UserProfile(
+      uid = user.uid,
+      name = displayName,
+      username = displayName.lowercase().replace(" ", "") + "_" + (1000..9999).random(),
+      profilePicture = user.photoUrl?.toString() ?: ""
+    )
+    FirebaseManager.firestore.collection("users").document(user.uid).set(profile).await()
+  }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -380,7 +438,7 @@ fun LoginScreen(navController: NavHostController) {
               isLoading = false
               if (task.isSuccessful) {
                 FirebaseManager.setPresence(task.result.user!!.uid)
-                navController.navigate("chats") { popUpTo("login") { inclusive = true } }
+                navController.navigate("home") { popUpTo("login") { inclusive = true } }
               } else {
                 errorMessage = task.exception?.message ?: "Login failed"
               }
@@ -415,7 +473,7 @@ fun LoginScreen(navController: NavHostController) {
                         FirebaseManager.setPresence(uid)
                         isLoading = false
                         Toast.makeText(context, "Account created!", Toast.LENGTH_SHORT).show()
-                        navController.navigate("chats") { popUpTo("login") { inclusive = true } }
+                        navController.navigate("home") { popUpTo("login") { inclusive = true } }
                     } catch (e: Exception) {
                         isLoading = false
                         errorMessage = "Failed to save profile: ${e.message}"
@@ -438,6 +496,32 @@ fun LoginScreen(navController: NavHostController) {
       }
     }
     
+    Spacer(modifier = Modifier.height(12.dp))
+    OutlinedButton(
+      onClick = {
+        isLoading = true
+        errorMessage = null
+        coroutineScope.launch {
+          try {
+            val result = signInWithGoogleCredential(context)
+            val user = result.user ?: throw IllegalStateException("Google sign-in returned no Firebase user")
+            ensureGoogleUserProfile(user)
+            FirebaseManager.setPresence(user.uid)
+            isLoading = false
+            navController.navigate("home") { popUpTo("login") { inclusive = true } }
+          } catch (e: Exception) {
+            isLoading = false
+            errorMessage = e.message ?: "Google sign-in failed"
+          }
+        }
+      },
+      modifier = Modifier.fillMaxWidth().height(48.dp),
+      enabled = !isLoading
+    ) {
+      Icon(Icons.Filled.AccountCircle, contentDescription = null)
+      Spacer(modifier = Modifier.width(8.dp))
+      Text("Continue with Google")
+    }
     Spacer(modifier = Modifier.height(16.dp))
     
     TextButton(onClick = { 
@@ -519,6 +603,92 @@ fun ForgotPasswordScreen(navController: NavHostController) {
     
     TextButton(onClick = { navController.navigateUp() }) {
       Text("Back to Login")
+    }
+  }
+}
+
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun HomeFeedScreen(navController: NavHostController) {
+  val context = LocalContext.current
+  val scope = rememberCoroutineScope()
+  val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: return
+  val posts by FirebaseManager.getSocialPosts().collectAsState(initial = emptyList())
+  var feedNotice by remember { mutableStateOf<String?>(null) }
+  var showComposer by remember { mutableStateOf(false) }
+  var title by remember { mutableStateOf("") }
+  var body by remember { mutableStateOf("") }
+  var tags by remember { mutableStateOf("") }
+  var mediaUri by remember { mutableStateOf<Uri?>(null) }
+  val mediaPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { mediaUri = it }
+
+  if (showComposer) {
+    AlertDialog(onDismissRequest = { showComposer = false }, title = { Text("Create social post") }, text = {
+      Column {
+        OutlinedTextField(title, { title = it }, label = { Text("Title") }, modifier = Modifier.fillMaxWidth())
+        OutlinedTextField(body, { body = it }, label = { Text("What is happening?") }, modifier = Modifier.fillMaxWidth(), minLines = 3)
+        OutlinedTextField(tags, { tags = it }, label = { Text("Tags: friends, update") }, modifier = Modifier.fillMaxWidth())
+        TextButton(onClick = { mediaPicker.launch("image/*") }) { Text(if (mediaUri == null) "Attach photo/video" else "Media selected") }
+      }
+    }, confirmButton = {
+      Button(onClick = {
+        scope.launch {
+          var url = ""
+          mediaUri?.let { uri ->
+            val bytes = context.contentResolver.openInputStream(uri)?.readBytes()
+            if (bytes != null) url = SupabaseManager.uploadFile("posts", "${UUID.randomUUID()}.jpg", bytes)
+          }
+          FirebaseManager.createPost(currentUserId, title, body, tags.split(',').map { it.trim() }.filter { it.isNotEmpty() }, url, "image")
+          title = ""; body = ""; tags = ""; mediaUri = null; showComposer = false
+        }
+      }) { Text("Post") }
+    }, dismissButton = { TextButton(onClick = { showComposer = false }) { Text("Cancel") } })
+  }
+
+  Scaffold(topBar = { TopAppBar(title = { Text("Nexus Social") }) }, floatingActionButton = { FloatingActionButton(onClick = { showComposer = true }) { Icon(Icons.Filled.Add, null) } }) { padding ->
+    LazyColumn(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color(0xFFFFE3F3), Color(0xFFFFF7FB), Color(0xFFEDE7FF)))).padding(padding), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+      item {
+        ElevatedCard(colors = CardDefaults.elevatedCardColors(containerColor = Color.White.copy(alpha = 0.70f))) {
+          Column(Modifier.padding(16.dp)) {
+            Text("Nexus Social", fontWeight = FontWeight.Bold, fontSize = 24.sp, color = Color(0xFFC2185B))
+            Text("Share posts, photos, tags and reactions. Chats are now one tap away in the bottom bar.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+          }
+        }
+        if (feedNotice != null) Text(feedNotice!!, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(top = 8.dp))
+      }
+      items(posts.size) { index ->
+        val post = posts[index]
+        LaunchedEffect(post.postId) { try { FirebaseManager.incrementPostView(post.postId) } catch (e: Exception) { feedNotice = e.message } }
+        ElevatedCard(colors = CardDefaults.elevatedCardColors(containerColor = Color.White.copy(alpha = 0.76f)), modifier = Modifier.fillMaxWidth()) {
+          Column(Modifier.padding(16.dp)) {
+            Text(post.title, fontWeight = FontWeight.Bold, fontSize = 20.sp)
+            if (post.body.isNotBlank()) Text(post.body, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (post.mediaUrl.isNotBlank()) coil.compose.AsyncImage(model = post.mediaUrl, contentDescription = null, modifier = Modifier.fillMaxWidth().height(220.dp).clip(RoundedCornerShape(18.dp)), contentScale = androidx.compose.ui.layout.ContentScale.Crop)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 10.dp)) {
+              listOf("❤️", "😂", "🔥", "👏").forEach { emoji -> AssistChip(onClick = { FirebaseManager.reactToPost(post.postId, currentUserId, emoji) }, label = { Text(emoji) }) }
+            }
+            Text("${post.views} views • ${post.reactions.size} reactions • ${post.tags.joinToString(" #", prefix = "#")}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+          }
+        }
+      }
+    }
+  }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun NotificationsScreen(navController: NavHostController) {
+  val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
+  val notifications by FirebaseManager.getNotifications(uid).collectAsState(initial = emptyList())
+  Scaffold(topBar = { TopAppBar(title = { Text("Notification Box") }) }) { padding ->
+    LazyColumn(Modifier.fillMaxSize().padding(padding)) {
+      if (notifications.isEmpty()) item { Text("No activity yet", modifier = Modifier.padding(24.dp), color = MaterialTheme.colorScheme.onSurfaceVariant) }
+      items(notifications.size) { i ->
+        val n = notifications[i]
+        ListItem(headlineContent = { Text(n.title) }, supportingContent = { Text(n.body) }, leadingContent = { Icon(Icons.Filled.Notifications, null, tint = if (n.read) MaterialTheme.colorScheme.outline else Color(0xFFE91E63)) })
+        Divider()
+      }
     }
   }
 }
@@ -1276,6 +1446,33 @@ fun SettingsScreen(navController: NavHostController) {
   val coroutineScope = rememberCoroutineScope()
   val userProfile by FirebaseManager.getCurrentUserProfile().collectAsState(initial = null)
   val isDarkTheme by PreferenceManager.isDarkTheme(context).collectAsState(initial = true)
+  var editProfile by remember { mutableStateOf(false) }
+  var editName by remember(userProfile?.name) { mutableStateOf(userProfile?.name ?: "") }
+  var themeName by remember(userProfile?.themeName) { mutableStateOf(userProfile?.themeName ?: "Pink Glass") }
+  var pickedProfileUri by remember { mutableStateOf<Uri?>(null) }
+  val profilePicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { pickedProfileUri = it }
+
+  if (editProfile && userProfile != null) {
+    AlertDialog(onDismissRequest = { editProfile = false }, title = { Text("Edit profile") }, text = {
+      Column {
+        OutlinedTextField(editName, { editName = it }, label = { Text("Display name") }, modifier = Modifier.fillMaxWidth())
+        OutlinedTextField(themeName, { themeName = it }, label = { Text("Theme name") }, modifier = Modifier.fillMaxWidth())
+        TextButton(onClick = { profilePicker.launch("image/*") }) { Text(if (pickedProfileUri == null) "Upload new profile photo" else "New photo selected") }
+      }
+    }, confirmButton = {
+      Button(onClick = {
+        coroutineScope.launch {
+          var photo = userProfile!!.profilePicture
+          pickedProfileUri?.let { uri ->
+            val bytes = context.contentResolver.openInputStream(uri)?.readBytes()
+            if (bytes != null) photo = SupabaseManager.uploadFile("profiles", "${userProfile!!.uid}.jpg", bytes)
+          }
+          FirebaseManager.updateProfile(userProfile!!.uid, editName, photo, themeName)
+          editProfile = false
+        }
+      }) { Text("Save") }
+    }, dismissButton = { TextButton(onClick = { editProfile = false }) { Text("Cancel") } })
+  }
   
   Scaffold(
     topBar = {
@@ -1306,6 +1503,9 @@ fun SettingsScreen(navController: NavHostController) {
             Spacer(modifier = Modifier.height(16.dp))
             Text(userProfile!!.name, fontWeight = FontWeight.Bold, fontSize = 24.sp)
             Text("@${userProfile!!.username}", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 16.sp)
+            Text(userProfile!!.themeName, color = MaterialTheme.colorScheme.primary, fontSize = 14.sp)
+            Spacer(modifier = Modifier.height(12.dp))
+            Button(onClick = { editProfile = true }) { Text("Edit Profile") }
             Spacer(modifier = Modifier.height(24.dp))
             
             ListItem(
@@ -1329,6 +1529,16 @@ fun SettingsScreen(navController: NavHostController) {
       
       item {
         Divider()
+        ListItem(
+          headlineContent = { Text("Pink Glass Theme") },
+          supportingContent = { Text("Global pink, rose, purple and glass-style surfaces") },
+          leadingContent = { Icon(Icons.Filled.Palette, contentDescription = null) }
+        )
+        ListItem(
+          headlineContent = { Text("Mute / Block Controls") },
+          supportingContent = { Text("Open a chat profile to mute, block, unblock or stop notifications") },
+          leadingContent = { Icon(Icons.Filled.Block, contentDescription = null) }
+        )
         ListItem(
           headlineContent = { Text("Notifications") },
           leadingContent = { Icon(Icons.Filled.Settings, contentDescription = null) },

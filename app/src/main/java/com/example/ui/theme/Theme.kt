@@ -14,37 +14,37 @@ import androidx.compose.ui.graphics.Color
 
 private val DarkColorScheme =
   darkColorScheme(
-    primary = PrimaryBlueDark,
-    secondary = SecondaryTealDark,
-    background = BackgroundDark,
-    surface = SurfaceDark,
+    primary = NexusPinkDark,
+    secondary = NexusPurpleDark,
+    background = GlassDark,
+    surface = GlassSurfaceDark,
     onPrimary = Color.White,
     onSecondary = Color.White,
     onBackground = TextLight,
     onSurface = TextLight,
-    surfaceVariant = Color(0xFF2C2C2E),
-    onSurfaceVariant = Color(0xFFAEB0B2)
+    surfaceVariant = Color(0xFF3A2036),
+    onSurfaceVariant = Color(0xFFEBC8DD)
   )
 
 private val LightColorScheme =
   lightColorScheme(
-    primary = PrimaryBlue,
-    secondary = SecondaryTeal,
-    background = BackgroundLight,
-    surface = SurfaceLight,
+    primary = NexusPink,
+    secondary = NexusPurple,
+    background = GlassLight,
+    surface = GlassSurface,
     onPrimary = Color.White,
     onSecondary = Color.White,
     onBackground = TextDark,
     onSurface = TextDark,
-    surfaceVariant = Color(0xFFE5E5EA),
-    onSurfaceVariant = Color(0xFF8E8E93)
+    surfaceVariant = Color(0xFFFFD6EA),
+    onSurfaceVariant = Color(0xFF7A5269)
   )
 
 @Composable
 fun MyApplicationTheme(
   darkTheme: Boolean = isSystemInDarkTheme(),
   // Dynamic color is available on Android 12+
-  dynamicColor: Boolean = true,
+  dynamicColor: Boolean = false,
   content: @Composable () -> Unit,
 ) {
   val colorScheme =
