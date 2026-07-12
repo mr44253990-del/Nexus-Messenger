@@ -2,6 +2,8 @@ package com.example
 
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.createSupabaseClient
+import io.github.jan.supabase.postgrest.Postgrest
+import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.storage.Storage
 import io.github.jan.supabase.storage.storage
 import java.util.UUID
@@ -12,6 +14,7 @@ object SupabaseManager {
 
     val client: SupabaseClient = createSupabaseClient(SUPABASE_URL, SUPABASE_KEY) {
         install(Storage)
+        install(Postgrest)
     }
 
     suspend fun uploadFile(bucket: String, path: String, byteArray: ByteArray): String {
