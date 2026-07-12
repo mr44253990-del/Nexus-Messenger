@@ -17,7 +17,8 @@ data class UserProfile(
     val gender: String = "",
     val profilePicture: String = "",
     val online: Boolean = false,
-    val lastSeen: Long = 0
+    val lastSeen: Long = 0,
+    val fcmToken: String = ""
 )
 
 object FirebaseManager {
@@ -55,6 +56,10 @@ object FirebaseManager {
         val ref = rtdb.child("status").child(uid)
         ref.addValueEventListener(listener)
         awaitClose { ref.removeEventListener(listener) }
+    }
+
+    suspend fun updateFcmToken(uid: String, token: String) {
+        firestore.collection("users").document(uid).update("fcmToken", token).await()
     }
 
     suspend fun createUserProfile(uid: String, name: String, dob: String, gender: String) {

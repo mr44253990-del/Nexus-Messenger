@@ -47,6 +47,7 @@ import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.messaging.FirebaseMessaging
 import java.util.UUID
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.PlayArrow
@@ -85,7 +86,19 @@ fun EBChatApp() {
   if (onboardingCompleted == null) return // Wait for datastore
 
   val auth = remember { FirebaseAuth.getInstance() }
+  val currentUser = auth.currentUser
   
+  LaunchedEffect(currentUser) {
+    if (currentUser != null) {
+      try {
+        val token = FirebaseMessaging.getInstance().token.await()
+        FirebaseManager.updateFcmToken(currentUser.uid, token)
+      } catch (e: Exception) {
+        e.printStackTrace()
+      }
+    }
+  }
+
   val recordAudioPermission = rememberPermissionState(Manifest.permission.RECORD_AUDIO)
   
   if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
