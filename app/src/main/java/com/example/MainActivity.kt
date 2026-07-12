@@ -4,8 +4,11 @@ import android.Manifest
 import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
+import android.net.Uri
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -17,12 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.Chat
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Group
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -49,28 +47,11 @@ import com.google.accompanist.permissions.rememberPermissionState
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.messaging.FirebaseMessaging
 import java.util.UUID
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Mic
-import androidx.compose.material.icons.filled.Stop
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.RadioButtonChecked
-import androidx.compose.material.icons.filled.RadioButtonUnchecked
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Group
-import androidx.compose.material.icons.filled.Send
-import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.automirrored.filled.ExitToApp
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import android.net.Uri
 
 class MainActivity : ComponentActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
     enableEdgeToEdge()
-    FirebaseManager.context = this
     setContent {
       val context = LocalContext.current
       val isDarkTheme by PreferenceManager.isDarkTheme(context).collectAsState(initial = true)
@@ -984,8 +965,8 @@ fun MessageBubble(msg: FirebaseManager.Message, isMe: Boolean, onReply: (Firebas
                 if (msg.voiceUrl != null) {
                     VoiceMessagePlayer(msg.voiceUrl, textColor)
                 } else if (msg.imageUrl != null) {
-                    androidx.compose.foundation.Image(
-                        painter = coil.compose.rememberAsyncImagePainter(msg.imageUrl),
+                    coil.compose.AsyncImage(
+                        model = msg.imageUrl,
                         contentDescription = null,
                         modifier = Modifier.size(200.dp).clip(RoundedCornerShape(8.dp)),
                         contentScale = androidx.compose.ui.layout.ContentScale.Crop
@@ -1046,6 +1027,11 @@ fun VoiceMessagePlayer(voiceUrl: String, textColor: Color) {
                 try {
                     mediaPlayer.reset()
                     mediaPlayer.setDataSource(voiceUrl)
+                    mediaPlayer.setOnErrorListener { _, _, _ ->
+                        isPlaying = false
+                        Toast.makeText(context, "Playback error", Toast.LENGTH_SHORT).show()
+                        true
+                    }
                     mediaPlayer.prepareAsync()
                     mediaPlayer.setOnPreparedListener {
                         it.start()
@@ -1170,7 +1156,6 @@ fun GroupChatDetailScreen(navController: NavHostController, groupId: String, gro
     val messages by FirebaseManager.getGroupMessages(groupId).collectAsState(initial = emptyList())
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
-    FirebaseManager.context = context.applicationContext
     val recorder = remember { VoiceRecorder(context) }
     var isRecording by remember { mutableStateOf(false) }
     

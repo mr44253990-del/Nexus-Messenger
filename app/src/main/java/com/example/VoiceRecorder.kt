@@ -21,9 +21,16 @@ class VoiceRecorder(private val context: Context) {
     }
 
     fun stopRecording(): File? {
-        mediaRecorder?.apply {
-            stop()
-            release()
+        try {
+            mediaRecorder?.apply {
+                stop()
+                release()
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            mediaRecorder?.release()
+            audioFile?.delete()
+            audioFile = null
         }
         mediaRecorder = null
         return audioFile

@@ -8,12 +8,6 @@ import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.channels.awaitClose
-import io.ktor.client.*
-import io.ktor.client.engine.android.*
-import io.ktor.client.plugins.contentnegotiation.*
-import io.ktor.client.request.*
-import io.ktor.serialization.kotlinx.json.*
-import kotlinx.serialization.json.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -38,15 +32,6 @@ object FirebaseManager {
     val rtdb = FirebaseDatabase.getInstance().reference
 
     lateinit var context: Context
-
-    private val fcmClient = HttpClient(Android) {
-        install(ContentNegotiation) {
-            json(Json {
-                ignoreUnknownKeys = true
-                encodeDefaults = true
-            })
-        }
-    }
 
     private suspend fun sendFcmNotification(to: String, title: String, messageBody: String, chatId: String?, senderId: String?, receiverId: String?) {
         val isTopic = to.startsWith("/topics/")
