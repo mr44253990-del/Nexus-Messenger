@@ -120,6 +120,9 @@ import androidx.compose.ui.unit.sp
 import androidx.credentials.CredentialManager
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialException
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
+import java.util.UUID
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -711,7 +714,7 @@ private fun OnboardingPageContent(page: OnboardingPage, pageIndex: Int) {
                 val icon = when (pageIndex) {
                     0 -> Icons.Default.ChatBubble
                     1 -> Icons.Default.People
-                    else -> Icons.Default.Favorite
+                    else -> Icons.Default.Notifications
                 }
                 Icon(
                     imageVector = icon,
@@ -1485,7 +1488,7 @@ fun LoginScreen(navController: NavHostController) {
                 // ── Toggle login / sign-up ──
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                    horizontalArrangement = Arrangement.Center
                 ) {
                     Text(
                         text = if (isLoginMode) "Don't have an account? "

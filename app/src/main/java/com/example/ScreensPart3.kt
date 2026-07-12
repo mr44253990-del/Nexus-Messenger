@@ -14,7 +14,7 @@ import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Divider
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -532,7 +532,7 @@ fun StoryRingItem(user: UserProfile) {
 // CHAT DETAIL SCREEN
 // ============================================================
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatDetailScreen(
     navController: androidx.navigation.NavHostController,
@@ -693,7 +693,7 @@ fun ChatDetailScreen(
                             },
                             leadingIcon = {
                                 Icon(
-                                    if (isMuted) Icons.Filled.Notifications else Icons.Filled.Mute,
+                                    if (isMuted) Icons.Filled.NotificationsOff else Icons.Filled.Notifications,
                                     contentDescription = null
                                 )
                             }
@@ -758,7 +758,7 @@ fun ChatDetailScreen(
                             Box(
                                 modifier = Modifier
                                     .width(3.dp)
-                                    .fillMaxHeight(32.dp)
+                                    .height(32.dp)
                                     .clip(RoundedCornerShape(2.dp))
                                     .background(colors.primary)
                             )
@@ -1177,7 +1177,7 @@ fun MessageBubble(
                     Box(
                         modifier = Modifier
                             .width(3.dp)
-                            .fillMaxHeight(24.dp)
+                            .height(24.dp)
                             .clip(RoundedCornerShape(2.dp))
                             .background(if (isMe) Color.White.copy(alpha = 0.6f) else colors.primary)
                     )

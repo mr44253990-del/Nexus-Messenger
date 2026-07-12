@@ -1,11 +1,10 @@
 package com.example.ui.theme
 
-import android.os.Build
-import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
-import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
 enum class AppTheme(val label: String, val key: String) {
@@ -48,27 +47,72 @@ data class ThemeColors(
 )
 
 fun getLightColors(theme: AppTheme): ThemeColors {
-    val (primary, primaryDark, accent, glass) = when (theme) {
-        AppTheme.PINK_GLASS -> ThemeColors(PinkPrimary, PinkPrimaryDark, PinkAccent, PinkGlass, PinkPrimary, Color.White, PinkPrimaryLight, Color(0xFF880E4F), PinkGlassLight, PinkSurface, GlassWhite, GlassBorder, Color(0xFFB00020), PinkAccent, PinkGlass, PinkGlassLight, PinkSurface, GlassBorder)
-        AppTheme.OCEAN -> ThemeColors(OceanPrimary, OceanPrimaryDark, OceanAccent, OceanGlass, OceanPrimary, Color.White, Color(0xFFB2EBF2), Color(0xFF004D40), OceanGlass.copy(alpha = 0.15f), OceanGlass.copy(alpha = 0.08f), GlassWhite, GlassBorder, Color(0xFFB00020), OceanAccent, OceanGlass, OceanGlass.copy(alpha = 0.15f), OceanGlass.copy(alpha = 0.08f), GlassBorder)
-        AppTheme.SUNSET -> ThemeColors(SunsetPrimary, SunsetPrimaryDark, SunsetAccent, SunsetGlass, SunsetPrimary, Color.White, Color(0xFFFFCCBC), Color(0xFFBF360C), SunsetGlass.copy(alpha = 0.15f), SunsetGlass.copy(alpha = 0.08f), GlassWhite, GlassBorder, Color(0xFFB00020), SunsetAccent, SunsetGlass, SunsetGlass.copy(alpha = 0.15f), SunsetGlass.copy(alpha = 0.08f), GlassBorder)
-        AppTheme.FOREST -> ThemeColors(ForestPrimary, ForestPrimaryDark, ForestAccent, ForestGlass, ForestPrimary, Color.White, Color(0xFFC8E6C9), Color(0xFF1B5E20), ForestGlass.copy(alpha = 0.15f), ForestGlass.copy(alpha = 0.08f), GlassWhite, GlassBorder, Color(0xFFB00020), ForestAccent, ForestGlass, ForestGlass.copy(alpha = 0.15f), ForestGlass.copy(alpha = 0.08f), GlassBorder)
-        AppTheme.LAVENDER -> ThemeColors(LavenderPrimary, LavenderPrimaryDark, LavenderAccent, LavenderGlass, LavenderPrimary, Color.White, Color(0xFFE1BEE7), Color(0xFF4A148C), LavenderGlass.copy(alpha = 0.15f), LavenderGlass.copy(alpha = 0.08f), GlassWhite, GlassBorder, Color(0xFFB00020), LavenderAccent, LavenderGlass, LavenderGlass.copy(alpha = 0.15f), LavenderGlass.copy(alpha = 0.08f), GlassBorder)
-        AppTheme.MIDNIGHT -> ThemeColors(MidnightPrimary, MidnightPrimaryDark, MidnightAccent, MidnightGlass, MidnightPrimary, Color.White, Color(0xFFC5CAE9), Color(0xFF1A237E), MidnightGlass.copy(alpha = 0.15f), MidnightGlass.copy(alpha = 0.08f), GlassWhite, GlassBorder, Color(0xFFB00020), MidnightAccent, MidnightGlass, MidnightGlass.copy(alpha = 0.15f), MidnightGlass.copy(alpha = 0.08f), GlassBorder)
-        AppTheme.ROSE_GOLD -> ThemeColors(RoseGoldPrimary, RoseGoldPrimaryDark, RoseGoldAccent, RoseGoldGlass, RoseGoldPrimary, Color.White, Color(0xFFFFE0B2), Color(0xFF795548), RoseGoldGlass.copy(alpha = 0.15f), RoseGoldGlass.copy(alpha = 0.08f), GlassWhite, GlassBorder, Color(0xFFB00020), RoseGoldAccent, RoseGoldGlass, RoseGoldGlass.copy(alpha = 0.15f), RoseGoldGlass.copy(alpha = 0.08f), GlassBorder)
+    return when (theme) {
+        AppTheme.PINK_GLASS -> ThemeColors(
+            PinkPrimary, Color.White, PinkPrimaryLight, Color(0xFF880E4F),
+            PinkAccent, Color.White,
+            Color(0xFFFFF0F5), Color(0xFF1C1C1E),
+            Color.White, Color(0xFF1C1C1E),
+            Color(0xFFF8BBD0), Color(0xFF44474E),
+            Color(0xFFB00020), PinkAccent,
+            PinkGlass, PinkGlassLight, PinkSurface, GlassBorder
+        )
+        AppTheme.OCEAN -> ThemeColors(
+            OceanPrimary, Color.White, Color(0xFFB2EBF2), Color(0xFF004D40),
+            OceanAccent, Color.White,
+            Color(0xFFF0F8FF), Color(0xFF1C1C1E),
+            Color.White, Color(0xFF1C1C1E),
+            Color(0xFFB2EBF2), Color(0xFF44474E),
+            Color(0xFFB00020), OceanAccent,
+            OceanGlass, OceanGlass.copy(alpha = 0.15f), OceanGlass.copy(alpha = 0.08f), GlassBorder
+        )
+        AppTheme.SUNSET -> ThemeColors(
+            SunsetPrimary, Color.White, Color(0xFFFFCCBC), Color(0xFFBF360C),
+            SunsetAccent, Color.White,
+            Color(0xFFFFF5F0), Color(0xFF1C1C1E),
+            Color.White, Color(0xFF1C1C1E),
+            Color(0xFFFFCCBC), Color(0xFF44474E),
+            Color(0xFFB00020), SunsetAccent,
+            SunsetGlass, SunsetGlass.copy(alpha = 0.15f), SunsetGlass.copy(alpha = 0.08f), GlassBorder
+        )
+        AppTheme.FOREST -> ThemeColors(
+            ForestPrimary, Color.White, Color(0xFFC8E6C9), Color(0xFF1B5E20),
+            ForestAccent, Color.White,
+            Color(0xFFF0FFF0), Color(0xFF1C1C1E),
+            Color.White, Color(0xFF1C1C1E),
+            Color(0xFFC8E6C9), Color(0xFF44474E),
+            Color(0xFFB00020), ForestAccent,
+            ForestGlass, ForestGlass.copy(alpha = 0.15f), ForestGlass.copy(alpha = 0.08f), GlassBorder
+        )
+        AppTheme.LAVENDER -> ThemeColors(
+            LavenderPrimary, Color.White, Color(0xFFE1BEE7), Color(0xFF4A148C),
+            LavenderAccent, Color.White,
+            Color(0xFFFDF0FF), Color(0xFF1C1C1E),
+            Color.White, Color(0xFF1C1C1E),
+            Color(0xFFE1BEE7), Color(0xFF44474E),
+            Color(0xFFB00020), LavenderAccent,
+            LavenderGlass, LavenderGlass.copy(alpha = 0.15f), LavenderGlass.copy(alpha = 0.08f), GlassBorder
+        )
+        AppTheme.MIDNIGHT -> ThemeColors(
+            MidnightPrimary, Color.White, Color(0xFFC5CAE9), Color(0xFF1A237E),
+            MidnightAccent, Color.White,
+            Color(0xFFF0F2FF), Color(0xFF1C1C1E),
+            Color.White, Color(0xFF1C1C1E),
+            Color(0xFFC5CAE9), Color(0xFF44474E),
+            Color(0xFFB00020), MidnightAccent,
+            MidnightGlass, MidnightGlass.copy(alpha = 0.15f), MidnightGlass.copy(alpha = 0.08f), GlassBorder
+        )
+        AppTheme.ROSE_GOLD -> ThemeColors(
+            RoseGoldPrimary, Color.White, Color(0xFFFFE0B2), Color(0xFF795548),
+            RoseGoldAccent, Color.White,
+            Color(0xFFFFF8F0), Color(0xFF1C1C1E),
+            Color.White, Color(0xFF1C1C1E),
+            Color(0xFFFFE0B2), Color(0xFF44474E),
+            Color(0xFFB00020), RoseGoldAccent,
+            RoseGoldGlass, RoseGoldGlass.copy(alpha = 0.15f), RoseGoldGlass.copy(alpha = 0.08f), GlassBorder
+        )
         AppTheme.SYSTEM -> getLightColors(AppTheme.PINK_GLASS)
     }
-    return ThemeColors(
-        primary = primary, onPrimary = Color.White,
-        primaryContainer = primaryContainer, onPrimaryContainer = onPrimaryContainer,
-        secondary = secondary, onSecondary = Color.White,
-        background = Color(0xFFFFF0F5), onBackground = Color(0xFF1C1C1E),
-        surface = Color.White, onSurface = Color(0xFF1C1C1E),
-        surfaceVariant = surfaceVariant, onSurfaceVariant = onSurfaceVariant,
-        error = error, accent = accent,
-        glass = glass, glassLight = glassLight,
-        glassSurface = glassSurface, glassBorder = glassBorder
-    )
 }
 
 fun getDarkColors(theme: AppTheme): ThemeColors {
@@ -140,6 +184,8 @@ fun getDarkColors(theme: AppTheme): ThemeColors {
     }
 }
 
+val LocalThemeColors = staticCompositionLocalOf { getLightColors(AppTheme.PINK_GLASS) }
+
 @Composable
 fun EBChatTheme(
     theme: AppTheme = AppTheme.PINK_GLASS,
@@ -182,14 +228,7 @@ fun EBChatTheme(
         )
     }
 
-    androidx.compose.runtime.CompositionLocalProvider(
-        LocalThemeColors provides colors
-    ) {
+    androidx.compose.runtime.CompositionLocalProvider(LocalThemeColors provides colors) {
         MaterialTheme(colorScheme = colorScheme, typography = Typography, content = content)
     }
-}
-
-object LocalThemeColors {
-    val current: ThemeColors
-        @Composable get() = androidx.compose.runtime.compositionLocalOf { getLightColors(AppTheme.PINK_GLASS) }.current
 }

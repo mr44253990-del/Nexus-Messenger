@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -92,6 +93,8 @@ import coil.compose.AsyncImage
 import coil.compose.rememberAsyncImagePainter
 import com.example.ui.theme.LocalThemeColors
 import com.example.ui.theme.StoryRingGradient
+import com.google.firebase.auth.FirebaseAuth
+import androidx.compose.material3.FloatingActionButton
 import kotlinx.coroutines.launch
 import java.util.UUID
 import java.util.concurrent.TimeUnit
@@ -930,9 +933,6 @@ fun CommentsSheet(
                                 userName = currentUserName
                             )
                             commentText = ""
-                            coroutineScope.launch {
-                                sheetState.animateTo(bottomSheetState = sheetState.currentValue)
-                            }
                         }
                     },
                     enabled = commentText.isNotBlank()

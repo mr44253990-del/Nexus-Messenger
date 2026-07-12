@@ -6,7 +6,7 @@ import android.widget.Toast
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
@@ -55,7 +55,6 @@ import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Mute
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Person
@@ -79,6 +78,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
@@ -777,7 +777,7 @@ fun GroupChatDetailScreen(
                                     showMoreMenu = false
                                     showLeaveDialog = true
                                 },
-                                leadingIcon = { Icon(Icons.Filled.ExitToApp, null) }
+                                leadingIcon = { Icon(Icons.AutoMirrored.Filled.ExitToApp, null) }
                             )
                             if (isAdmin) {
                                 DropdownMenuItem(
@@ -1885,9 +1885,9 @@ fun StoryViewerScreen(
     // Handle video playback
     val currentStory = stories.getOrNull(currentIndex)
     DisposableEffect(currentStory?.storyId) {
+        val player = MediaPlayer()
         if (currentStory != null && currentStory.mediaType == "video") {
             try {
-                val player = MediaPlayer()
                 player.setDataSource(context, currentStory.mediaUrl.toUri())
                 player.prepareAsync()
                 player.setOnPreparedListener { mp ->
@@ -1901,18 +1901,11 @@ fun StoryViewerScreen(
                         navController.navigateUp()
                     }
                 }
-                onDispose {
-                    try {
-                        player.release()
-                    } catch (_: Exception) {}
-                    mediaPlayer = null
-                }
             } catch (_: Exception) {}
-        } else {
-            onDispose {
-                try { mediaPlayer?.release() } catch (_: Exception) {}
-                mediaPlayer = null
-            }
+        }
+        onDispose {
+            try { player.release() } catch (_: Exception) {}
+            mediaPlayer = null
         }
     }
 
@@ -2468,7 +2461,7 @@ fun UserProfileScreen(
                             )
                     ) {
                         Icon(
-                            Icons.Filled.Mute,
+                            Icons.Filled.VolumeOff,
                             contentDescription = if (isMuted) "Unmute" else "Mute",
                             tint = if (isMuted) MaterialTheme.colorScheme.error
                             else MaterialTheme.colorScheme.onSurfaceVariant,
@@ -2527,138 +2520,6 @@ fun StatItem(label: String, value: String) {
         )
     }
 }
-
-    post: FirebaseManager.Post,
-    userName: String,
-    userPicture: String,
-    onClick: () -> Unit
-) {
-    GlassCard {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { onClick() }
-        ) {
-            // Header
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primaryContainer),
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (userPicture.isNotEmpty()) {
-                        AsyncImage(
-                            model = userPicture,
-                            contentDescription = null,
-                            modifier = Modifier.fillMaxSize().clip(CircleShape),
-                            contentScale = ContentScale.Crop
-                        )
-                    } else {
-                        Text(
-                            userName.take(1).uppercase(),
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp
-                        )
-                    }
-                }
-                Spacer(modifier = Modifier.width(10.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        userName,
-                        fontWeight = FontWeight.SemiBold,
-                        fontSize = 14.sp
-                    )
-                    Text(
-                        formatTime(post.timestamp),
-                        fontSize = 11.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-
-            // Post image
-            if (post.imageUrl != null) {
-                AsyncImage(
-                    model = post.imageUrl,
-                    contentDescription = null,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .aspectRatio(1f),
-                    contentScale = ContentScale.Crop
-                )
-            }
-
-            // Caption
-            if (post.caption.isNotBlank()) {
-                Text(
-                    post.caption,
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                    fontSize = 14.sp,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            }
-
-            // Tags
-            if (post.tags.isNotEmpty()) {
-                LazyRow(
-                    modifier = Modifier.padding(horizontal = 12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    items(post.tags) { tag ->
-                        Text(
-                            "#$tag",
-                            fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-                }
-            }
-
-            // Reactions + views
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Reaction emoji summary
-                val reactionEmojis = post.reactions.values.distinct().take(3)
-                if (reactionEmojis.isNotEmpty()) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        reactionEmojis.forEach { emoji ->
-                            Text(emoji, fontSize = 14.sp)
-                        }
-                        Text(
-                            " ${post.reactions.size}",
-                            fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-                Spacer(modifier = Modifier.weight(1f))
-                if (post.viewCount > 0) {
-                    Text(
-                        "${post.viewCount} views",
-                        fontSize = 11.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                    )
-                }
-            }
-        }
-    }
-}
-
-// ═══════════════════════════════════════════════════════════════
-// 7. ADD MEMBER DIALOG
-// ═══════════════════════════════════════════════════════════════
 
 @Composable
 fun AddMemberDialog(
@@ -2788,6 +2649,9 @@ fun AddMemberDialog(
 // 8. FORWARD DIALOG
 // ═══════════════════════════════════════════════════════════════
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ForwardDialog(
     message: FirebaseManager.Message,
     currentUserId: String,
     onDismiss: () -> Unit
