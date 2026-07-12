@@ -48,6 +48,13 @@ android {
     }
     debug { signingConfig = signingConfigs.getByName("debugConfig") }
   }
+  packaging {
+    resources {
+      excludes += "/META-INF/{AL2.0,LGPL2.1}"
+      excludes += "/META-INF/INDEX.LIST"
+      excludes += "/META-INF/DEPENDENCIES"
+    }
+  }
   compileOptions {
     sourceCompatibility = JavaVersion.VERSION_11
     targetCompatibility = JavaVersion.VERSION_11
@@ -55,6 +62,10 @@ android {
   buildFeatures {
     compose = true
     buildConfig = true
+  }
+  secrets {
+    propertiesFileName = ".env"
+    defaultPropertiesFileName = ".env.example"
   }
   testOptions { unitTests { isIncludeAndroidResources = true } }
 }
@@ -107,6 +118,9 @@ dependencies {
   implementation(libs.supabase.postgrest)
   implementation(libs.ktor.client.android)
   implementation(libs.ktor.client.core)
+  implementation(libs.ktor.client.content.negotiation)
+  implementation(libs.ktor.serialization.kotlinx.json)
+  implementation(libs.google.auth.library.oauth2.http)
   implementation(libs.kotlinx.serialization.json)
 
   // Firebase Auth with Google Sign-In requires all of the following to be uncommented together.

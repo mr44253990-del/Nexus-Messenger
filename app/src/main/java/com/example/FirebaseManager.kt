@@ -8,6 +8,17 @@ import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.channels.awaitClose
+import io.ktor.client.*
+import io.ktor.client.engine.android.*
+import io.ktor.client.plugins.contentnegotiation.*
+import io.ktor.client.request.*
+import io.ktor.serialization.kotlinx.json.*
+import kotlinx.serialization.json.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import android.util.Log
+import android.content.Context
 
 data class UserProfile(
     val uid: String = "",
@@ -25,6 +36,36 @@ object FirebaseManager {
     val auth = FirebaseAuth.getInstance()
     val firestore = FirebaseFirestore.getInstance()
     val rtdb = FirebaseDatabase.getInstance().reference
+
+    lateinit var context: Context
+
+    private val fcmClient = HttpClient(Android) {
+        install(ContentNegotiation) {
+            json(Json {
+                ignoreUnknownKeys = true
+                encodeDefaults = true
+            })
+        }
+    }
+
+    private suspend fun sendFcmNotification(to: String, title: String, messageBody: String, chatId: String?, senderId: String?, receiverId: String?) {
+        val isTopic = to.startsWith("/topics/")
+        val topic = if (isTopic) to.removePrefix("/topics/") else null
+        val token = if (isTopic) null else to
+
+        FcmHttpV1Manager.sendNotification(
+            context = context,
+            token = token,
+            topic = topic,
+            title = title,
+            body = messageBody,
+            data = mutableMapOf<String, String>().apply {
+                if (chatId != null) put("chatId", chatId)
+                if (senderId != null) put("senderId", senderId)
+                if (receiverId != null) put("receiverId", receiverId)
+            }
+        )
+    }
 
     fun getAllUsersFlow(): Flow<List<UserProfile>> = callbackFlow {
         val listenerRegistration = firestore.collection("users")
@@ -185,6 +226,31 @@ object FirebaseManager {
             repliedToText = repliedToText
         )
         messageRef.set(message)
+
+        // Fetch receiver's token and send notification
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val receiverProfile = firestore.collection("users").document(receiverId).get().await().toObject(UserProfile::class.java)
+                val token = receiverProfile?.fcmToken
+                if (!token.isNullOrEmpty()) {
+                    val senderProfile = firestore.collection("users").document(senderId).get().await().toObject(UserProfile::class.java)
+                    sendFcmNotification(
+                        to = token,
+                        title = senderProfile?.name ?: "New Message",
+                        messageBody = when {
+                            !voiceUrl.isNullOrEmpty() -> "Sent a voice message"
+                            !imageUrl.isNullOrEmpty() -> "Sent a photo"
+                            else -> text
+                        },
+                        chatId = chatId,
+                        senderId = senderId,
+                        receiverId = receiverId
+                    )
+                }
+            } catch (e: Exception) {
+                Log.e("FCM", "Failed to send message notification: ${e.message}")
+            }
+        }
     }
 
     fun setTypingStatus(uid: String, receiverId: String, isTyping: Boolean) {
@@ -265,10 +331,31 @@ object FirebaseManager {
         awaitClose { listenerRegistration.remove() }
     }
 
-    fun sendGroupMessage(groupId: String, senderId: String, text: String, voiceUrl: String? = null) {
+    fun sendGroupMessage(groupId: String, senderId: String, text: String, voiceUrl: String? = null, imageUrl: String? = null) {
         val ref = firestore.collection("groups").document(groupId).collection("messages").document()
-        val msg = Message(messageId = ref.id, senderId = senderId, text = text, voiceUrl = voiceUrl)
+        val msg = Message(messageId = ref.id, senderId = senderId, text = text, voiceUrl = voiceUrl, imageUrl = imageUrl)
         ref.set(msg)
+
+        // Send notification to group topic
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val senderProfile = firestore.collection("users").document(senderId).get().await().toObject(UserProfile::class.java)
+                sendFcmNotification(
+                    to = "/topics/group_$groupId",
+                    title = "Group Message",
+                    messageBody = "${senderProfile?.name}: " + when {
+                        !voiceUrl.isNullOrEmpty() -> "Sent a voice message"
+                        !imageUrl.isNullOrEmpty() -> "Sent a photo"
+                        else -> text
+                    },
+                    chatId = groupId,
+                    senderId = senderId,
+                    receiverId = null
+                )
+            } catch (e: Exception) {
+                Log.e("FCM", "Failed to send group notification: ${e.message}")
+            }
+        }
     }
     fun getCurrentUserProfile(): Flow<UserProfile?> = callbackFlow {
         val uid = auth.currentUser?.uid

@@ -57,11 +57,20 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.RadioButtonChecked
 import androidx.compose.material.icons.filled.RadioButtonUnchecked
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Group
+import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import android.net.Uri
 
 class MainActivity : ComponentActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
     enableEdgeToEdge()
+    FirebaseManager.context = this
     setContent {
       val context = LocalContext.current
       val isDarkTheme by PreferenceManager.isDarkTheme(context).collectAsState(initial = true)
@@ -93,6 +102,9 @@ fun EBChatApp() {
       try {
         val token = FirebaseMessaging.getInstance().token.await()
         FirebaseManager.updateFcmToken(currentUser.uid, token)
+        
+        // Subscribe to a generic topic for all users if needed
+        FirebaseMessaging.getInstance().subscribeToTopic("all_users")
       } catch (e: Exception) {
         e.printStackTrace()
       }
@@ -751,7 +763,7 @@ fun formatTime(timeMillis: Long): String {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
 @Composable
 fun ChatDetailScreen(navController: NavHostController, targetUserId: String, targetUserName: String) {
   var message by remember { mutableStateOf("") }
@@ -773,6 +785,26 @@ fun ChatDetailScreen(navController: NavHostController, targetUserId: String, tar
   
   val recorder = remember { VoiceRecorder(context) }
   var isRecording by remember { mutableStateOf(false) }
+  val recordAudioPermission = rememberPermissionState(Manifest.permission.RECORD_AUDIO)
+
+  val imagePickerLauncher = rememberLauncherForActivityResult(
+    contract = ActivityResultContracts.GetContent()
+  ) { uri: Uri? ->
+    uri?.let {
+      coroutineScope.launch {
+        try {
+          val inputStream = context.contentResolver.openInputStream(it)
+          val bytes = inputStream?.readBytes()
+          if (bytes != null) {
+            val url = SupabaseManager.uploadFile("images", "${UUID.randomUUID()}.jpg", bytes)
+            FirebaseManager.sendMessage(chatId, currentUserId, targetUserId, "", imageUrl = url)
+          }
+        } catch (e: Exception) {
+          Toast.makeText(context, "Upload failed: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
+      }
+    }
+  }
 
   Scaffold(
     topBar = {
@@ -810,7 +842,9 @@ fun ChatDetailScreen(navController: NavHostController, targetUserId: String, tar
           modifier = Modifier.fillMaxWidth().padding(8.dp),
           verticalAlignment = Alignment.CenterVertically
         ) {
-          IconButton(onClick = { /* Image selection logic here */ }) {
+          IconButton(onClick = { 
+            imagePickerLauncher.launch("image/*")
+          }) {
             Icon(Icons.Filled.Add, contentDescription = "Add Image")
           }
           
@@ -829,8 +863,16 @@ fun ChatDetailScreen(navController: NavHostController, targetUserId: String, tar
           
           if (message.isBlank() && !isRecording) {
             IconButton(onClick = { 
-                isRecording = true
-                recorder.startRecording()
+                if (recordAudioPermission.status.isGranted) {
+                    try {
+                        isRecording = true
+                        recorder.startRecording()
+                    } catch (e: Exception) {
+                        Toast.makeText(context, "Recorder error: ${e.message}", Toast.LENGTH_SHORT).show()
+                    }
+                } else {
+                    recordAudioPermission.launchPermissionRequest()
+                }
             }) {
               Icon(Icons.Filled.Mic, contentDescription = "Voice Message")
             }
@@ -838,13 +880,21 @@ fun ChatDetailScreen(navController: NavHostController, targetUserId: String, tar
              Row(verticalAlignment = Alignment.CenterVertically) {
                  Text("Recording...", color = Color.Red, fontSize = 12.sp)
                  IconButton(onClick = { 
-                     isRecording = false
-                     val file = recorder.stopRecording()
-                     if (file != null) {
-                         coroutineScope.launch {
-                             val url = SupabaseManager.uploadFile("voices", "${UUID.randomUUID()}.mp3", file.readBytes())
-                             FirebaseManager.sendMessage(chatId, currentUserId, targetUserId, "", voiceUrl = url)
+                     try {
+                         isRecording = false
+                         val file = recorder.stopRecording()
+                         if (file != null) {
+                             coroutineScope.launch {
+                                 try {
+                                     val url = SupabaseManager.uploadFile("voices", "${UUID.randomUUID()}.mp3", file.readBytes())
+                                     FirebaseManager.sendMessage(chatId, currentUserId, targetUserId, "", voiceUrl = url)
+                                 } catch (e: Exception) {
+                                     Toast.makeText(context, "Upload failed: ${e.message}", Toast.LENGTH_SHORT).show()
+                                 }
+                             }
                          }
+                     } catch (e: Exception) {
+                         Toast.makeText(context, "Recorder error: ${e.message}", Toast.LENGTH_SHORT).show()
                      }
                  }) {
                    Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Send Voice")
@@ -1111,7 +1161,7 @@ fun CommunityScreen(navController: NavHostController) {
   }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
 @Composable
 fun GroupChatDetailScreen(navController: NavHostController, groupId: String, groupName: String) {
     var message by remember { mutableStateOf("") }
@@ -1120,8 +1170,30 @@ fun GroupChatDetailScreen(navController: NavHostController, groupId: String, gro
     val messages by FirebaseManager.getGroupMessages(groupId).collectAsState(initial = emptyList())
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
+    FirebaseManager.context = context.applicationContext
     val recorder = remember { VoiceRecorder(context) }
     var isRecording by remember { mutableStateOf(false) }
+    
+    val recordAudioPermission = rememberPermissionState(Manifest.permission.RECORD_AUDIO)
+
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let {
+            coroutineScope.launch {
+                try {
+                    val inputStream = context.contentResolver.openInputStream(it)
+                    val bytes = inputStream?.readBytes()
+                    if (bytes != null) {
+                        val url = SupabaseManager.uploadFile("group_images", "${UUID.randomUUID()}.jpg", bytes)
+                        FirebaseManager.sendGroupMessage(groupId, currentUserId, "", imageUrl = url)
+                    }
+                } catch (e: Exception) {
+                    Toast.makeText(context, "Upload failed: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -1144,25 +1216,46 @@ fun GroupChatDetailScreen(navController: NavHostController, groupId: String, gro
                     onValueChange = { message = it },
                     modifier = Modifier.weight(1f),
                     placeholder = { Text("Message group...") },
-                    shape = RoundedCornerShape(24.dp)
+                    shape = RoundedCornerShape(24.dp),
+                    leadingIcon = {
+                        IconButton(onClick = { imagePickerLauncher.launch("image/*") }) {
+                            Icon(Icons.Filled.Add, contentDescription = "Add Image")
+                        }
+                    }
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 if (message.isBlank() && !isRecording) {
                     IconButton(onClick = { 
-                        isRecording = true
-                        recorder.startRecording()
+                        if (recordAudioPermission.status.isGranted) {
+                            try {
+                                isRecording = true
+                                recorder.startRecording()
+                            } catch (e: Exception) {
+                                Toast.makeText(context, "Recorder error: ${e.message}", Toast.LENGTH_SHORT).show()
+                            }
+                        } else {
+                            recordAudioPermission.launchPermissionRequest()
+                        }
                     }) { Icon(Icons.Filled.Mic, contentDescription = "Voice") }
                 } else if (isRecording) {
                     IconButton(onClick = { 
-                        isRecording = false
-                        val file = recorder.stopRecording()
-                        if (file != null) {
-                            coroutineScope.launch {
-                                val url = SupabaseManager.uploadFile("group_voices", "${UUID.randomUUID()}.mp3", file.readBytes())
-                                FirebaseManager.sendGroupMessage(groupId, currentUserId, "", voiceUrl = url)
+                        try {
+                            isRecording = false
+                            val file = recorder.stopRecording()
+                            if (file != null) {
+                                coroutineScope.launch {
+                                    try {
+                                        val url = SupabaseManager.uploadFile("group_voices", "${UUID.randomUUID()}.mp3", file.readBytes())
+                                        FirebaseManager.sendGroupMessage(groupId, currentUserId, "", voiceUrl = url)
+                                    } catch (e: Exception) {
+                                        Toast.makeText(context, "Upload failed: ${e.message}", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
                             }
+                        } catch (e: Exception) {
+                            Toast.makeText(context, "Recorder error: ${e.message}", Toast.LENGTH_SHORT).show()
                         }
-                    }) { Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Send Voice", tint = Color.Green) }
+                    }) { Icon(Icons.Filled.Stop, contentDescription = "Stop", tint = Color.Red) }
                 } else {
                     IconButton(onClick = {
                         if (message.isNotBlank()) {
