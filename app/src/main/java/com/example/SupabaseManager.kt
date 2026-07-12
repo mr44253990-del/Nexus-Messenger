@@ -16,12 +16,18 @@ object SupabaseManager {
 
     suspend fun uploadFile(bucket: String, path: String, byteArray: ByteArray): String {
         val fileName = "${UUID.randomUUID()}_$path"
-        client.storage.from(bucket).upload(fileName, byteArray)
+        client.storage.from(bucket).upload(fileName, byteArray) {
+            upsert = true
+        }
         return client.storage.from(bucket).publicUrl(fileName)
     }
 
     suspend fun deleteFile(bucket: String, url: String) {
-        val fileName = url.substringAfterLast("/")
-        client.storage.from(bucket).delete(fileName)
+        try {
+            val fileName = url.substringAfterLast("/")
+            client.storage.from(bucket).delete(fileName)
+        } catch (e: Exception) {
+            // File might already be deleted
+        }
     }
 }

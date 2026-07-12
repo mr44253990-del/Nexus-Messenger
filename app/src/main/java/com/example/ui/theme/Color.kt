@@ -2,22 +2,62 @@ package com.example.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-val PrimaryBlue = Color(0xFF007AFF)
-val PrimaryDark = Color(0xFF0056B3)
-val SecondaryTeal = Color(0xFF34C759)
-val BackgroundLight = Color(0xFFF2F2F7)
-val SurfaceLight = Color(0xFFFFFFFF)
-val TextDark = Color(0xFF1C1C1E)
+// ===== Pink Glass Theme (Default) =====
+val PinkPrimary = Color(0xFFE91E8C)
+val PinkPrimaryDark = Color(0xFFC2185B)
+val PinkPrimaryLight = Color(0xFFF8BBD0)
+val PinkAccent = Color(0xFFFF4081)
+val PinkGlass = Color(0x40E91E8C)
+val PinkGlassLight = Color(0x25FF4081)
+val PinkSurface = Color(0x1AE91E8C)
+val PinkGradientStart = Color(0xFFE91E8C)
+val PinkGradientEnd = Color(0xFFFF6090)
+val GlassWhite = Color(0xB3FFFFFF)
+val GlassBorder = Color(0x33FFFFFF)
+val GlassBackground = Color(0x0DFFFFFF)
 
-val PrimaryBlueDark = Color(0xFF0A84FF)
-val SecondaryTealDark = Color(0xFF30D158)
-val BackgroundDark = Color(0xFF000000)
-val SurfaceDark = Color(0xFF1C1C1E)
-val TextLight = Color(0xFFF2F2F7)
+// ===== Ocean Theme =====
+val OceanPrimary = Color(0xFF00BCD4)
+val OceanPrimaryDark = Color(0xFF00838F)
+val OceanAccent = Color(0xFF26C6DA)
+val OceanGlass = Color(0x4000BCD4)
 
-val Purple80 = Color(0xFFD0BCFF)
-val PurpleGrey80 = Color(0xFFCCC2DC)
-val Pink80 = Color(0xFFEFB8C8)
-val Purple40 = Color(0xFF6650a4)
-val PurpleGrey40 = Color(0xFF625b71)
-val Pink40 = Color(0xFF7D5260)
+// ===== Sunset Theme =====
+val SunsetPrimary = Color(0xFFFF5722)
+val SunsetPrimaryDark = Color(0xFFD84315)
+val SunsetAccent = Color(0xFFFF7043)
+val SunsetGlass = Color(0x40FF5722)
+
+// ===== Forest Theme =====
+val ForestPrimary = Color(0xFF4CAF50)
+val ForestPrimaryDark = Color(0xFF2E7D32)
+val ForestAccent = Color(0xFF66BB6A)
+val ForestGlass = Color(0x404CAF50)
+
+// ===== Lavender Theme =====
+val LavenderPrimary = Color(0xFF9C27B0)
+val LavenderPrimaryDark = Color(0xFF7B1FA2)
+val LavenderAccent = Color(0xFFAB47BC)
+val LavenderGlass = Color(0x409C27B0)
+
+// ===== Midnight Theme =====
+val MidnightPrimary = Color(0xFF3F51B5)
+val MidnightPrimaryDark = Color(0xFF283593)
+val MidnightAccent = Color(0xFF5C6BC0)
+val MidnightGlass = Color(0x403F51B5)
+
+// ===== Rose Gold Theme =====
+val RoseGoldPrimary = Color(0xFFE8A87C)
+val RoseGoldPrimaryDark = Color(0xFFD4956A)
+val RoseGoldAccent = Color(0xFFD4A574)
+val RoseGoldGlass = Color(0x40E8A87C)
+
+// ===== Common Colors =====
+val OnlineGreen = Color(0xFF4CAF50)
+val OnlineGreenBright = Color(0xFF00E676)
+val NotificationRed = Color(0xFFFF1744)
+val GlassDark = Color(0x1A000000)
+val GlassDarkBorder = Color(0x26000000)
+val ShimmerLight = Color(0xFFE0E0E0)
+val ShimmerDark = Color(0xFF2C2C2E)
+val StoryRingGradient = Color(0xFFE91E8C)

@@ -1,1366 +1,1762 @@
 package com.example
 
 import android.Manifest
+import android.app.Activity
+import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
+import android.widget.DatePicker
 import android.widget.Toast
-import android.net.Uri
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
 import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ExitToApp
-import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.ChatBubble
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.People
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.datastore.preferences.core.edit
+import androidx.credentials.CredentialManager
+import androidx.credentials.GetCredentialRequest
+import androidx.credentials.exceptions.GetCredentialException
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.example.ui.theme.MyApplicationTheme
+import androidx.navigation.navArgument
+import coil.compose.AsyncImage
+import coil.compose.rememberAsyncImagePainter
+import coil.request.ImageRequest
+import com.example.ui.theme.AppTheme
+import com.example.ui.theme.EBChatTheme
+import com.example.ui.theme.LocalThemeColors
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
+import com.google.android.libraries.identity.googleid.GoogleIdTokenParsingException
+import com.google.firebase.auth.GoogleAuthProvider
+import com.google.firebase.auth.UserProfileChangeRequest
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
-import com.google.accompanist.permissions.ExperimentalPermissionsApi
-import com.google.accompanist.permissions.isGranted
-import com.google.accompanist.permissions.rememberPermissionState
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.messaging.FirebaseMessaging
-import java.util.UUID
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
+
+private const val WEB_CLIENT_ID = "YOUR_WEB_CLIENT_ID_HERE"
+
+data class OnboardingPage(
+    val title: String,
+    val description: String,
+    val gradientColors: List<Color>
+)
+
+data class BottomNavItem(
+    val route: String,
+    val label: String,
+    val icon: ImageVector
+)
 
 class MainActivity : ComponentActivity() {
-  override fun onCreate(savedInstanceState: Bundle?) {
-    super.onCreate(savedInstanceState)
-    enableEdgeToEdge()
-    setContent {
-      val context = LocalContext.current
-      val isDarkTheme by PreferenceManager.isDarkTheme(context).collectAsState(initial = true)
-      
-      MyApplicationTheme(darkTheme = isDarkTheme) {
-        EBChatApp()
-      }
-    }
-  }
-}
-
-@OptIn(ExperimentalPermissionsApi::class)
-@Composable
-fun EBChatApp() {
-  val context = LocalContext.current
-  val navController = rememberNavController()
-  val navBackStackEntry by navController.currentBackStackEntryAsState()
-  val currentRoute = navBackStackEntry?.destination?.route ?: "splash"
-
-  val onboardingCompleted by PreferenceManager.isOnboardingCompleted(context).collectAsState(initial = null)
-  
-  if (onboardingCompleted == null) return // Wait for datastore
-
-  val auth = remember { FirebaseAuth.getInstance() }
-  val currentUser = auth.currentUser
-  
-  LaunchedEffect(currentUser) {
-    if (currentUser != null) {
-      try {
-        val token = FirebaseMessaging.getInstance().token.await()
-        FirebaseManager.updateFcmToken(currentUser.uid, token)
-        
-        // Subscribe to a generic topic for all users if needed
-        FirebaseMessaging.getInstance().subscribeToTopic("all_users")
-      } catch (e: Exception) {
-        e.printStackTrace()
-      }
-    }
-  }
-
-  val recordAudioPermission = rememberPermissionState(Manifest.permission.RECORD_AUDIO)
-  
-  if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-    val notificationPermission = rememberPermissionState(Manifest.permission.POST_NOTIFICATIONS)
-    LaunchedEffect(Unit) {
-      if (!notificationPermission.status.isGranted) {
-        notificationPermission.launchPermissionRequest()
-      }
-      if (!recordAudioPermission.status.isGranted) {
-        recordAudioPermission.launchPermissionRequest()
-      }
-    }
-  } else {
-    LaunchedEffect(Unit) {
-      if (!recordAudioPermission.status.isGranted) {
-        recordAudioPermission.launchPermissionRequest()
-      }
-    }
-  }
-
-  val startDestination = when {
-      onboardingCompleted == false -> "onboarding"
-      auth.currentUser != null -> "chats"
-      else -> "login"
-  }
-
-  val showBottomBar = currentRoute in listOf("chats", "community", "settings")
-
-  Scaffold(
-    bottomBar = {
-      if (showBottomBar) {
-        NavigationBar {
-          NavigationBarItem(
-            icon = { Icon(Icons.Filled.Chat, contentDescription = "Chats") },
-            label = { Text("Chats") },
-            selected = currentRoute == "chats",
-            onClick = { navController.navigate("chats") { popUpTo(0) } }
-          )
-          NavigationBarItem(
-            icon = { Icon(Icons.Filled.Group, contentDescription = "Community") },
-            label = { Text("Community") },
-            selected = currentRoute == "community",
-            onClick = { navController.navigate("community") { popUpTo(0) } }
-          )
-          NavigationBarItem(
-            icon = { Icon(Icons.Filled.Settings, contentDescription = "Settings") },
-            label = { Text("Settings") },
-            selected = currentRoute == "settings",
-            onClick = { navController.navigate("settings") { popUpTo(0) } }
-          )
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
+        FirebaseManager.context = this
+        setContent {
+            MyApp(intent, this)
         }
-      }
     }
-  ) { innerPadding ->
-    NavHost(
-      navController = navController,
-      startDestination = startDestination,
-      modifier = Modifier.padding(innerPadding)
-    ) {
-      composable("onboarding") { OnboardingScreen(navController) }
-      composable("login") { LoginScreen(navController) }
-      composable("forgot_password") { ForgotPasswordScreen(navController) }
-      composable("chats") { ChatsScreen(navController) }
-      composable("community") { CommunityScreen(navController) }
-      composable("group_detail/{groupId}/{groupName}") { backStackEntry ->
-          val groupId = backStackEntry.arguments?.getString("groupId") ?: ""
-          val groupName = backStackEntry.arguments?.getString("groupName") ?: ""
-          GroupChatDetailScreen(navController, groupId, groupName)
-      }
-      composable("settings") { SettingsScreen(navController) }
-      composable("chat_detail/{targetUserId}/{targetUserName}") { backStackEntry ->
-          val targetUserId = backStackEntry.arguments?.getString("targetUserId") ?: ""
-          val targetUserName = backStackEntry.arguments?.getString("targetUserName") ?: ""
-          ChatDetailScreen(navController, targetUserId, targetUserName)
-      }
-    }
-  }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun MyApp(intent: Intent, activity: ComponentActivity) {
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+
+    // ── Theme from PreferenceManager ──
+    val isDarkTheme by PreferenceManager.isDarkTheme(context).collectAsState(initial = true)
+    val themeKey by PreferenceManager.getTheme(context).collectAsState(
+        initial = AppTheme.PINK_GLASS.key
+    )
+    val selectedTheme = remember(themeKey) {
+        AppTheme.values().find { it.key == themeKey } ?: AppTheme.PINK_GLASS
+    }
+
+    // ── Notification permission ──
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { /* Permission result handled */ }
+
+    LaunchedEffect(Unit) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
+
+    // ── Observe onboarding completed (wait for datastore) ──
+    val onboardingCompleted by PreferenceManager.isOnboardingCompleted(context)
+        .collectAsState(initial = null)
+
+    EBChatTheme(
+        theme = selectedTheme,
+        darkTheme = isDarkTheme
+    ) {
+        val themeColors = LocalThemeColors.current
+        val navController = rememberNavController()
+
+        // ── Notification navigation intent extras ──
+        val shouldOpenChat = intent.getBooleanExtra("openChat", false)
+        val targetUserId = intent.getStringExtra("targetUserId") ?: ""
+        val targetUserName = intent.getStringExtra("targetUserName") ?: ""
+        val shouldOpenGroup = intent.getBooleanExtra("openGroup", false)
+        val groupId = intent.getStringExtra("groupId") ?: ""
+        val groupName = intent.getStringExtra("groupName") ?: ""
+        val shouldOpenNotification = intent.getBooleanExtra("openNotification", false)
+
+        // ── Determine start destination ──
+        val currentUser = FirebaseManager.auth.currentUser
+        val startDestination = when {
+            onboardingCompleted == null -> "onboarding"
+            onboardingCompleted == false -> "onboarding"
+            currentUser != null -> "home"
+            else -> "login"
+        }
+
+        // ── Bottom bar visibility ──
+        val navBackStackEntry by navController.currentBackStackEntryAsState()
+        val currentRoute = navBackStackEntry?.destination?.route
+
+        val routesWithoutBottomBar = listOf(
+            "onboarding",
+            "login",
+            "forgot_password",
+            "chat_detail",
+            "group_detail",
+            "create_post",
+            "story_viewer",
+            "user_profile"
+        )
+
+        val showBottomBar = currentRoute != null &&
+            routesWithoutBottomBar.none { route -> currentRoute.startsWith(route) }
+
+        // ── Navigate on notification intent ──
+        LaunchedEffect(startDestination) {
+            if (startDestination == "home") {
+                if (shouldOpenChat && targetUserId.isNotEmpty()) {
+                    navController.navigate("chat_detail/$targetUserId/$targetUserName") {
+                        popUpTo("home") { saveState = true }
+                    }
+                } else if (shouldOpenGroup && groupId.isNotEmpty()) {
+                    navController.navigate("group_detail/$groupId/$groupName") {
+                        popUpTo("home") { saveState = true }
+                    }
+                } else if (shouldOpenNotification) {
+                    navController.navigate("notifications") {
+                        popUpTo("home") { saveState = true }
+                    }
+                }
+            }
+        }
+
+        // ── Update FCM token when user is logged in ──
+        LaunchedEffect(currentUser) {
+            if (currentUser != null) {
+                try {
+                    FirebaseManager.setPresence(currentUser.uid)
+                    val token = com.google.firebase.messaging.FirebaseMessaging
+                        .getInstance().token.await()
+                    FirebaseManager.updateFcmToken(currentUser.uid, token)
+                    com.google.firebase.messaging.FirebaseMessaging
+                        .getInstance().subscribeToTopic("all_users")
+                } catch (e: Exception) {
+                    Log.w("MyApp", "FCM token update failed", e)
+                }
+            }
+        }
+
+        Scaffold(
+            bottomBar = {
+                if (showBottomBar) {
+                    EBChatBottomNavigationBar(
+                        navController = navController,
+                        currentRoute = currentRoute,
+                        themeColors = themeColors
+                    )
+                }
+            }
+        ) { innerPadding ->
+            NavHost(
+                navController = navController,
+                startDestination = startDestination,
+                modifier = Modifier.padding(innerPadding)
+            ) {
+                composable("onboarding") {
+                    OnboardingScreen(navController = navController)
+                }
+                composable("login") {
+                    LoginScreen(navController = navController)
+                }
+                composable("forgot_password") {
+                    ForgotPasswordScreen(navController = navController)
+                }
+                composable("home") {
+                    HomeScreen(navController = navController)
+                }
+                composable("chats") {
+                    ChatsScreen(navController = navController)
+                }
+                composable("community") {
+                    CommunityScreen(navController = navController)
+                }
+                composable("notifications") {
+                    NotificationsScreen(navController = navController)
+                }
+                composable("settings") {
+                    SettingsScreen(navController = navController)
+                }
+                composable(
+                    route = "chat_detail/{targetUserId}/{targetUserName}",
+                    arguments = listOf(
+                        navArgument("targetUserId") { type = NavType.StringType },
+                        navArgument("targetUserName") { type = NavType.StringType }
+                    )
+                ) { backStackEntry ->
+                    val tUserId = backStackEntry.arguments?.getString("targetUserId") ?: ""
+                    val tUserName = backStackEntry.arguments?.getString("targetUserName") ?: ""
+                    ChatDetailScreen(navController = navController, targetUserId = tUserId, targetUserName = tUserName)
+                }
+                composable(
+                    route = "group_detail/{groupId}/{groupName}",
+                    arguments = listOf(
+                        navArgument("groupId") { type = NavType.StringType },
+                        navArgument("groupName") { type = NavType.StringType }
+                    )
+                ) { backStackEntry ->
+                    val gId = backStackEntry.arguments?.getString("groupId") ?: ""
+                    val gName = backStackEntry.arguments?.getString("groupName") ?: ""
+                    GroupChatDetailScreen(navController = navController, groupId = gId, groupName = gName)
+                }
+                composable("create_post") {
+                    CreatePostScreen(navController = navController)
+                }
+                composable(
+                    route = "user_profile/{userId}",
+                    arguments = listOf(
+                        navArgument("userId") { type = NavType.StringType }
+                    )
+                ) { backStackEntry ->
+                    val profileUserId = backStackEntry.arguments?.getString("userId") ?: ""
+                    UserProfileScreen(navController = navController, userId = profileUserId)
+                }
+                composable(
+                    route = "story_viewer/{userId}/{storyIndex}",
+                    arguments = listOf(
+                        navArgument("userId") { type = NavType.StringType },
+                        navArgument("storyIndex") { type = NavType.IntType }
+                    )
+                ) { backStackEntry ->
+                    val storyUserId = backStackEntry.arguments?.getString("userId") ?: ""
+                    val storyIdx = backStackEntry.arguments?.getInt("storyIndex") ?: 0
+                    StoryViewerScreen(navController = navController, userId = storyUserId, initialStoryIndex = storyIdx)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun EBChatBottomNavigationBar(
+    navController: NavHostController,
+    currentRoute: String?,
+    themeColors: com.example.ui.theme.ThemeColors
+) {
+    val items = listOf(
+        BottomNavItem("home", "Home", Icons.Default.Home),
+        BottomNavItem("chats", "Chats", Icons.Default.ChatBubble),
+        BottomNavItem("community", "Community", Icons.Default.People),
+        BottomNavItem("notifications", "Notifications", Icons.Default.Notifications),
+        BottomNavItem("settings", "Settings", Icons.Default.Settings)
+    )
+
+    Surface(
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
+        shadowElevation = 8.dp
+    ) {
+        NavigationBar(
+            containerColor = Color.Transparent,
+            tonalElevation = 0.dp
+        ) {
+            items.forEach { item ->
+                val selected = currentRoute == item.route
+                NavigationBarItem(
+                    icon = {
+                        Icon(
+                            imageVector = item.icon,
+                            contentDescription = item.label,
+                            tint = if (selected) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                            }
+                        )
+                    },
+                    label = {
+                        Text(
+                            text = item.label,
+                            color = if (selected) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                            },
+                            fontSize = 11.sp
+                        )
+                    },
+                    selected = selected,
+                    onClick = {
+                        if (currentRoute != item.route) {
+                            navController.navigate(item.route) {
+                                popUpTo("home") { saveState = true }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        }
+                    },
+                    colors = NavigationBarItemDefaults.colors(
+                        indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                    )
+                )
+            }
+        }
+    }
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  ONBOARDING SCREEN
+// ══════════════════════════════════════════════════════════════════
+
+@OptIn(ExperimentalMaterial3Api::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 fun OnboardingScreen(navController: NavHostController) {
-  val context = LocalContext.current
-  val coroutineScope = rememberCoroutineScope()
-  var currentPage by remember { mutableStateOf(0) }
-  
-  val pages = listOf(
-    OnboardingPage("Welcome to EB Chat", "Connect with anyone, anywhere in the world.", Color(0xFF6200EE)),
-    OnboardingPage("Secure Messaging", "Your messages are protected with end-to-end encryption.", Color(0xFF03DAC5)),
-    OnboardingPage("Join Communities", "Discover groups that share your interests.", Color(0xFFBB86FC))
-  )
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    val themeColors = LocalThemeColors.current
 
-  Column(
-    modifier = Modifier.fillMaxSize().padding(24.dp),
-    verticalArrangement = Arrangement.Center,
-    horizontalAlignment = Alignment.CenterHorizontally
-  ) {
-    Box(
-      modifier = Modifier.size(200.dp).clip(CircleShape).background(pages[currentPage].color.copy(alpha = 0.2f)),
-      contentAlignment = Alignment.Center
-    ) {
-      Text(pages[currentPage].title.take(1), fontSize = 80.sp, fontWeight = FontWeight.Bold, color = pages[currentPage].color)
-    }
-    Spacer(modifier = Modifier.height(48.dp))
-    Text(pages[currentPage].title, fontSize = 28.sp, fontWeight = FontWeight.Bold, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
-    Spacer(modifier = Modifier.height(16.dp))
-    Text(pages[currentPage].description, fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
-    
-    Spacer(modifier = Modifier.weight(1f))
-    
-    Row(horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth()) {
-      pages.forEachIndexed { index, _ ->
-        Box(
-          modifier = Modifier
-            .size(10.dp)
-            .clip(CircleShape)
-            .background(if (index == currentPage) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant)
+    val pages = listOf(
+        OnboardingPage(
+            title = "Welcome to EB Chat",
+            description = "Connect with friends and family in a beautiful, secure messaging experience built for everyone.",
+            gradientColors = listOf(
+                Color(0xFFFF6B9D),
+                Color(0xFFFFC3A0)
+            )
+        ),
+        OnboardingPage(
+            title = "Share Moments",
+            description = "Share stories, photos, and voice messages with your loved ones in real-time.",
+            gradientColors = listOf(
+                Color(0xFFFF8ED4),
+                Color(0xFFFFB6D9),
+                Color(0xFFE040FB)
+            )
+        ),
+        OnboardingPage(
+            title = "Join Communities",
+            description = "Discover vibrant communities, express yourself, and build meaningful connections.",
+            gradientColors = listOf(
+                Color(0xFFE040FB),
+                Color(0xFFFF6B9D),
+                Color(0xFFFF4081)
+            )
         )
-        Spacer(modifier = Modifier.width(8.dp))
-      }
-    }
-    
-    Spacer(modifier = Modifier.height(32.dp))
-    
-    Button(
-      onClick = {
-        if (currentPage < pages.size - 1) {
-          currentPage++
-        } else {
-          coroutineScope.launch {
-            PreferenceManager.setOnboardingCompleted(context)
-            navController.navigate("login") { popUpTo("onboarding") { inclusive = true } }
-          }
-        }
-      },
-      modifier = Modifier.fillMaxWidth().height(56.dp)
+    )
+
+    val pagerState = rememberPagerState(pageCount = { pages.size })
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .statusBarsPadding()
     ) {
-      Text(if (currentPage == pages.size - 1) "Get Started" else "Next")
+        // ── Gradient background + pages ──
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier.fillMaxSize()
+        ) { pageIndex ->
+            OnboardingPageContent(page = pages[pageIndex], pageIndex = pageIndex)
+        }
+
+        // ── Bottom overlay with indicators and buttons ──
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color.Transparent,
+                            Color.Black.copy(alpha = 0.3f)
+                        )
+                    )
+                )
+                .padding(horizontal = 32.dp, vertical = 48.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            // Page indicators
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                repeat(pages.size) { index ->
+                    val isSelected = pagerState.currentPage == index
+                    Box(
+                        modifier = Modifier
+                            .height(8.dp)
+                            .width(if (isSelected) 32.dp else 8.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(
+                                if (isSelected) Color.White
+                                else Color.White.copy(alpha = 0.4f)
+                            )
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // Next / Get Started button
+            Button(
+                onClick = {
+                    if (pagerState.currentPage < pages.size - 1) {
+                        coroutineScope.launch {
+                            pagerState.animateScrollToPage(pagerState.currentPage + 1)
+                        }
+                    } else {
+                        coroutineScope.launch {
+                            PreferenceManager.setOnboardingCompleted(context)
+                            navController.navigate("login") {
+                                popUpTo("onboarding") { inclusive = true }
+                            }
+                        }
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth(0.65f)
+                    .height(56.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color.White,
+                    contentColor = themeColors.primary
+                ),
+                shape = RoundedCornerShape(28.dp),
+                elevation = ButtonDefaults.buttonElevation(
+                    defaultElevation = 4.dp
+                )
+            ) {
+                Text(
+                    text = if (pagerState.currentPage < pages.size - 1) "Next" else "Get Started",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            // Skip button
+            if (pagerState.currentPage < pages.size - 1) {
+                TextButton(
+                    onClick = {
+                        coroutineScope.launch {
+                            PreferenceManager.setOnboardingCompleted(context)
+                            navController.navigate("login") {
+                                popUpTo("onboarding") { inclusive = true }
+                            }
+                        }
+                    },
+                    modifier = Modifier.padding(top = 4.dp)
+                ) {
+                    Text(
+                        text = "Skip",
+                        color = Color.White.copy(alpha = 0.8f),
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+        }
     }
-  }
 }
 
-data class OnboardingPage(val title: String, val description: String, val color: Color)
+@Composable
+private fun OnboardingPageContent(page: OnboardingPage, pageIndex: Int) {
+    val infiniteTransition = rememberInfiniteTransition(label = "onboarding_float")
+    val float1 by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(4000, easing = { it }),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "float1"
+    )
+    val float2 by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(3500, easing = { it }),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "float2"
+    )
+    val float3 by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(5000, easing = { it }),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "float3"
+    )
+
+    val config = LocalConfiguration.current
+    val screenHeight = config.screenHeightDp.dp
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(page.gradientColors)
+            )
+    ) {
+        // ── Decorative animated gradient circles ──
+        // Large circle – top right
+        Box(
+            modifier = Modifier
+                .offset(
+                    x = (80 + float1 * 30).dp,
+                    y = (-50 + float1 * 40).dp
+                )
+                .size(220.dp)
+                .clip(CircleShape)
+                .background(Color.White.copy(alpha = 0.12f))
+        )
+        // Medium circle – bottom left
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .offset(
+                    x = (-40 + float2 * 20).dp,
+                    y = (80 + float2 * 30).dp
+                )
+                .size(160.dp)
+                .clip(CircleShape)
+                .background(Color.White.copy(alpha = 0.09f))
+        )
+        // Small circle – upper center
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .offset(
+                    x = (-100 + float3 * 25).dp,
+                    y = (60 + float3 * 15).dp
+                )
+                .size(80.dp)
+                .clip(CircleShape)
+                .background(Color.White.copy(alpha = 0.18f))
+        )
+        // Tiny circle – mid right
+        Box(
+            modifier = Modifier
+                .align(Alignment.CenterEnd)
+                .offset(
+                    x = (20 + float1 * 10).dp,
+                    y = (40 + float2 * 20).dp
+                )
+                .size(50.dp)
+                .clip(CircleShape)
+                .background(Color.White.copy(alpha = 0.14f))
+        )
+        // Another decorative circle
+        Box(
+            modifier = Modifier
+                .align(Alignment.CenterStart)
+                .offset(
+                    x = (-30 + float3 * 15).dp,
+                    y = (-20 + float1 * 25).dp
+                )
+                .size(120.dp)
+                .clip(CircleShape)
+                .background(Color.White.copy(alpha = 0.07f))
+        )
+
+        // ── Page content ──
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            // Icon circle
+            Box(
+                modifier = Modifier
+                    .size(180.dp)
+                    .clip(CircleShape)
+                    .background(Color.White.copy(alpha = 0.2f))
+                    .border(
+                        BorderStroke(2.dp, Color.White.copy(alpha = 0.3f)),
+                        CircleShape
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                val icon = when (pageIndex) {
+                    0 -> Icons.Default.ChatBubble
+                    1 -> Icons.Default.People
+                    else -> Icons.Default.Favorite
+                }
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    modifier = Modifier.size(80.dp),
+                    tint = Color.White
+                )
+            }
+
+            Spacer(modifier = Modifier.height(48.dp))
+
+            Text(
+                text = page.title,
+                fontSize = 32.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White,
+                textAlign = TextAlign.Center
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text(
+                text = page.description,
+                fontSize = 16.sp,
+                color = Color.White.copy(alpha = 0.9f),
+                textAlign = TextAlign.Center,
+                lineHeight = 26.sp
+            )
+        }
+    }
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  LOGIN SCREEN  (toggles to SIGN UP mode)
+// ══════════════════════════════════════════════════════════════════
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen(navController: NavHostController) {
-  var isLoginMode by remember { mutableStateOf(true) }
-  var email by remember { mutableStateOf("") }
-  var password by remember { mutableStateOf("") }
-  var name by remember { mutableStateOf("") }
-  var dob by remember { mutableStateOf("") }
-  var gender by remember { mutableStateOf("") }
-  var profilePicUri by remember { mutableStateOf<android.net.Uri?>(null) }
-  var isLoading by remember { mutableStateOf(false) }
-  var errorMessage by remember { mutableStateOf<String?>(null) }
-  
-  val auth = remember { FirebaseAuth.getInstance() }
-  val context = LocalContext.current
-  val coroutineScope = rememberCoroutineScope()
+    var isLoginMode by rememberSaveable { mutableStateOf(true) }
+    var email by rememberSaveable { mutableStateOf("") }
+    var password by rememberSaveable { mutableStateOf("") }
+    var name by rememberSaveable { mutableStateOf("") }
+    var dob by rememberSaveable { mutableStateOf("") }
+    var selectedGender by rememberSaveable { mutableStateOf("") }
+    var profilePictureUri by remember { mutableStateOf<Uri?>(null) }
+    var passwordVisible by rememberSaveable { mutableStateOf(false) }
+    var isLoading by rememberSaveable { mutableStateOf(false) }
+    var errorMessage by rememberSaveable { mutableStateOf("") }
 
-  Column(
-    modifier = Modifier.fillMaxSize().padding(24.dp),
-    verticalArrangement = Arrangement.Center,
-    horizontalAlignment = Alignment.CenterHorizontally
-  ) {
-    Text("EB Chat", fontSize = 36.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-    Spacer(modifier = Modifier.height(8.dp))
-    Text(if (isLoginMode) "Connect with friends & community" else "Create a new account", color = MaterialTheme.colorScheme.onSurfaceVariant)
-    
-    Spacer(modifier = Modifier.height(32.dp))
-    
-    if (!isLoginMode) {
-        val launcher = androidx.activity.compose.rememberLauncherForActivityResult(
-            contract = androidx.activity.result.contract.ActivityResultContracts.GetContent()
-        ) { uri -> profilePicUri = uri }
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    val auth = FirebaseManager.auth
+    val themeColors = LocalThemeColors.current
 
-        Box(
-            modifier = Modifier.size(100.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant).clickable { launcher.launch("image/*") },
-            contentAlignment = Alignment.Center
-        ) {
-            if (profilePicUri != null) {
-                androidx.compose.foundation.Image(
-                    painter = coil.compose.rememberAsyncImagePainter(profilePicUri),
-                    contentDescription = "Profile Picture",
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = androidx.compose.ui.layout.ContentScale.Crop
-                )
-            } else {
-                Icon(Icons.Filled.AccountCircle, contentDescription = "Add Photo", modifier = Modifier.size(48.dp))
-            }
-        }
-        Text("Upload Photo", fontSize = 12.sp, color = MaterialTheme.colorScheme.primary)
-        Spacer(modifier = Modifier.height(16.dp))
-    }
-    if (errorMessage != null) {
-      Text(errorMessage ?: "", color = MaterialTheme.colorScheme.error, fontSize = 14.sp)
-      Spacer(modifier = Modifier.height(8.dp))
+    // ── Photo picker launcher ──
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri: Uri? ->
+        profilePictureUri = uri
     }
 
-    if (!isLoginMode) {
-      OutlinedTextField(
-        value = name,
-        onValueChange = { name = it },
-        label = { Text("Name") },
-        modifier = Modifier.fillMaxWidth()
-      )
-      Spacer(modifier = Modifier.height(8.dp))
-      
-      var showDatePicker by remember { mutableStateOf(false) }
-      if (showDatePicker) {
-          val datePickerState = rememberDatePickerState()
-          DatePickerDialog(
-              onDismissRequest = { showDatePicker = false },
-              confirmButton = {
-                  TextButton(onClick = {
-                      datePickerState.selectedDateMillis?.let {
-                          val date = java.util.Date(it)
-                          val format = java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault())
-                          dob = format.format(date)
-                      }
-                      showDatePicker = false
-                  }) { Text("OK") }
-              }
-          ) {
-              DatePicker(state = datePickerState)
-          }
-      }
-
-      OutlinedTextField(
-        value = dob,
-        onValueChange = { },
-        readOnly = true,
-        label = { Text("Date of Birth") },
-        modifier = Modifier.fillMaxWidth().clickable { showDatePicker = true },
-        enabled = false,
-        colors = OutlinedTextFieldDefaults.colors(
-            disabledTextColor = MaterialTheme.colorScheme.onSurface,
-            disabledBorderColor = MaterialTheme.colorScheme.outline,
-            disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-      )
-      Spacer(modifier = Modifier.height(8.dp))
-      
-      Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-          RadioButton(selected = gender == "Male", onClick = { gender = "Male" })
-          Text("Male")
-          Spacer(modifier = Modifier.width(16.dp))
-          RadioButton(selected = gender == "Female", onClick = { gender = "Female" })
-          Text("Female")
-      }
-      Spacer(modifier = Modifier.height(8.dp))
-    }
-
-    OutlinedTextField(
-      value = email,
-      onValueChange = { email = it },
-      label = { Text("Email") },
-      modifier = Modifier.fillMaxWidth()
+    // ── Date picker dialog ──
+    var showDatePicker by rememberSaveable { mutableStateOf(false) }
+    val datePickerState = rememberDatePickerState(
+        initialSelectedDateMillis = Calendar.getInstance().apply {
+            add(Calendar.YEAR, -18)
+        }.timeInMillis
     )
-    Spacer(modifier = Modifier.height(8.dp))
-    OutlinedTextField(
-      value = password,
-      onValueChange = { password = it },
-      label = { Text("Password") },
-      visualTransformation = PasswordVisualTransformation(),
-      modifier = Modifier.fillMaxWidth()
-    )
-    
-    Spacer(modifier = Modifier.height(24.dp))
-    
-    Button(
-      onClick = {
-        if (email.isEmpty() || password.isEmpty()) {
-           errorMessage = "Please fill out all fields"
-           return@Button
-        }
-        if (!isLoginMode && (name.isEmpty() || dob.isEmpty() || gender.isEmpty())) {
-           errorMessage = "Please fill out all fields"
-           return@Button
-        }
-        isLoading = true
-        errorMessage = null
-        if (isLoginMode) {
-          auth.signInWithEmailAndPassword(email, password)
-            .addOnCompleteListener { task ->
-              isLoading = false
-              if (task.isSuccessful) {
-                FirebaseManager.setPresence(task.result.user!!.uid)
-                navController.navigate("chats") { popUpTo("login") { inclusive = true } }
-              } else {
-                errorMessage = task.exception?.message ?: "Login failed"
-              }
-            }
-        } else {
-          auth.createUserWithEmailAndPassword(email, password)
-            .addOnCompleteListener { task ->
-              if (task.isSuccessful) {
-                val uid = task.result.user!!.uid
-                coroutineScope.launch {
-                    try {
-                        var profileUrl = ""
-                        if (profilePicUri != null) {
-                            val inputStream = context.contentResolver.openInputStream(profilePicUri!!)
-                            val bytes = inputStream?.readBytes()
-                            if (bytes != null) {
-                                profileUrl = SupabaseManager.uploadFile("profiles", "${uid}.jpg", bytes)
-                            }
-                        }
-                        
-                        val username = name.lowercase().replace(" ", "") + "_" + (1000..9999).random()
-                        val userProfile = UserProfile(
-                            uid = uid,
-                            name = name,
-                            username = username,
-                            dob = dob,
-                            gender = gender,
-                            profilePicture = profileUrl
-                        )
-                        FirebaseManager.firestore.collection("users").document(uid).set(userProfile).await()
-                        
-                        FirebaseManager.setPresence(uid)
-                        isLoading = false
-                        Toast.makeText(context, "Account created!", Toast.LENGTH_SHORT).show()
-                        navController.navigate("chats") { popUpTo("login") { inclusive = true } }
-                    } catch (e: Exception) {
-                        isLoading = false
-                        errorMessage = "Failed to save profile: ${e.message}"
+    if (showDatePicker) {
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    datePickerState.selectedDateMillis?.let { millis ->
+                        val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+                        dob = sdf.format(Date(millis))
                     }
+                    showDatePicker = false
+                }) {
+                    Text("OK", color = MaterialTheme.colorScheme.primary)
                 }
-              } else {
-                isLoading = false
-                errorMessage = task.exception?.message ?: "Signup failed"
-              }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) {
+                    Text("Cancel", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+                }
             }
+        ) {
+            DatePicker(state = datePickerState)
         }
-      },
-      modifier = Modifier.fillMaxWidth().height(50.dp),
-      enabled = !isLoading
-    ) {
-      if (isLoading) {
-        CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary)
-      } else {
-        Text(if (isLoginMode) "Login" else "Sign Up")
-      }
-    }
-    
-    Spacer(modifier = Modifier.height(16.dp))
-    
-    TextButton(onClick = { 
-      navController.navigate("forgot_password")
-    }) {
-      Text("Forgot Password?")
-    }
-    
-    Spacer(modifier = Modifier.height(8.dp))
-
-    TextButton(onClick = { 
-      isLoginMode = !isLoginMode 
-      errorMessage = null
-    }) {
-      Text(if (isLoginMode) "Don't have an account? Sign up" else "Already have an account? Login")
-    }
-  }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun ForgotPasswordScreen(navController: NavHostController) {
-  var email by remember { mutableStateOf("") }
-  var isLoading by remember { mutableStateOf(false) }
-  var message by remember { mutableStateOf<String?>(null) }
-  var isError by remember { mutableStateOf(false) }
-  
-  val auth = remember { FirebaseAuth.getInstance() }
-
-  Column(
-    modifier = Modifier.fillMaxSize().padding(24.dp),
-    verticalArrangement = Arrangement.Center,
-    horizontalAlignment = Alignment.CenterHorizontally
-  ) {
-    Text("Reset Password", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-    Spacer(modifier = Modifier.height(16.dp))
-    Text("Enter your email address and we'll send you a link to reset your password.", textAlign = androidx.compose.ui.text.style.TextAlign.Center)
-    
-    Spacer(modifier = Modifier.height(32.dp))
-    
-    if (message != null) {
-      Text(message!!, color = if (isError) MaterialTheme.colorScheme.error else Color.Green, fontSize = 14.sp)
-      Spacer(modifier = Modifier.height(16.dp))
     }
 
-    OutlinedTextField(
-      value = email,
-      onValueChange = { email = it },
-      label = { Text("Email") },
-      modifier = Modifier.fillMaxWidth()
-    )
-    
-    Spacer(modifier = Modifier.height(24.dp))
-    
-    Button(
-      onClick = {
-        if (email.isEmpty()) return@Button
+    // ── Google Sign-In via CredentialManager ──
+    fun signInWithGoogle() {
         isLoading = true
-        auth.sendPasswordResetEmail(email)
-          .addOnCompleteListener { task ->
-            isLoading = false
-            if (task.isSuccessful) {
-              message = "Reset link sent to your email!"
-              isError = false
-            } else {
-              message = task.exception?.message ?: "Failed to send reset link"
-              isError = true
-            }
-          }
-      },
-      modifier = Modifier.fillMaxWidth().height(50.dp),
-      enabled = !isLoading
-    ) {
-      if (isLoading) CircularProgressIndicator(modifier = Modifier.size(24.dp))
-      else Text("Send Reset Link")
-    }
-    
-    Spacer(modifier = Modifier.height(16.dp))
-    
-    TextButton(onClick = { navController.navigateUp() }) {
-      Text("Back to Login")
-    }
-  }
-}
+        errorMessage = ""
+        val credentialManager = CredentialManager.create(context)
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun ChatsScreen(navController: NavHostController) {
-  val auth = remember { FirebaseAuth.getInstance() }
-  val currentUserId = auth.currentUser?.uid
-  
-  var searchQuery by remember { mutableStateOf("") }
-  var isSearching by remember { mutableStateOf(false) }
+        val googleIdOption: GetGoogleIdOption = GetGoogleIdOption.Builder()
+            .setFilterByAuthorizedAccounts(false)
+            .setServerClientId(WEB_CLIENT_ID)
+            .build()
 
-  val users by FirebaseManager.getAllUsersFlow().collectAsState(initial = emptyList())
-  val stories by FirebaseManager.getStories().collectAsState(initial = emptyList())
-  
-  val filteredUsers = users.filter { 
-      it.uid != currentUserId && 
-      (searchQuery.isEmpty() || it.name.contains(searchQuery, ignoreCase = true) || it.username.contains(searchQuery, ignoreCase = true))
-  }
-  
-  Scaffold(
-    topBar = {
-      TopAppBar(
-        title = { 
-          if (isSearching) {
-            OutlinedTextField(
-              value = searchQuery,
-              onValueChange = { searchQuery = it },
-              placeholder = { Text("Search users...") },
-              singleLine = true,
-              modifier = Modifier.fillMaxWidth().height(50.dp)
-            )
-          } else {
-            Text("Chats") 
-          }
-        },
-        actions = {
-          IconButton(onClick = { 
-            isSearching = !isSearching 
-            if (!isSearching) searchQuery = ""
-          }) {
-            Icon(
-              if (isSearching) Icons.Filled.Close else Icons.Filled.Search,
-              contentDescription = "Search"
-            )
-          }
-          IconButton(onClick = {
-            auth.signOut()
-            navController.navigate("login") { popUpTo(0) }
-          }) { Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Logout") }
-        }
-      )
-    }
-  ) { padding ->
-    if (filteredUsers.isEmpty() && stories.isEmpty()) {
-      Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-        Text("No chats or stories found", color = MaterialTheme.colorScheme.onSurfaceVariant)
-      }
-    } else {
-      LazyColumn(modifier = Modifier.fillMaxSize().padding(padding)) {
-        item {
-          StoriesBar(stories, users)
-          Divider()
-        }
-        items(filteredUsers.size) { index ->
-          val user = filteredUsers[index]
-          ChatListItem(
-            user = user,
-            onClick = { navController.navigate("chat_detail/${user.uid}/${user.name}") }
-          )
-        }
-      }
-    }
-  }
-}
+        val request = GetCredentialRequest.Builder()
+            .addCredentialOption(googleIdOption)
+            .build()
 
-@Composable
-fun StoriesBar(stories: List<FirebaseManager.Story>, allUsers: List<UserProfile>) {
-  val context = LocalContext.current
-  val coroutineScope = rememberCoroutineScope()
-  val auth = remember { FirebaseAuth.getInstance() }
-  
-  val launcher = androidx.activity.compose.rememberLauncherForActivityResult(
-    contract = androidx.activity.result.contract.ActivityResultContracts.GetContent()
-  ) { uri ->
-    if (uri != null && auth.currentUser != null) {
         coroutineScope.launch {
             try {
-                val inputStream = context.contentResolver.openInputStream(uri)
-                val bytes = inputStream?.readBytes()
-                if (bytes != null) {
-                    val url = SupabaseManager.uploadFile("stories", "${UUID.randomUUID()}.jpg", bytes)
-                    FirebaseManager.uploadStory(auth.currentUser!!.uid, url)
-                    Toast.makeText(context, "Story uploaded!", Toast.LENGTH_SHORT).show()
-                }
-            } catch (e: Exception) {
-                Toast.makeText(context, "Upload failed: ${e.message}", Toast.LENGTH_SHORT).show()
-            }
-        }
-    }
-  }
-
-  LazyRow(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-    item {
-      Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(end = 12.dp)) {
-        Box(
-          modifier = Modifier.size(60.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primaryContainer).clickable { launcher.launch("image/*") },
-          contentAlignment = Alignment.Center
-        ) {
-          Icon(Icons.Filled.AccountCircle, contentDescription = "Add Story", modifier = Modifier.size(32.dp))
-        }
-        Spacer(modifier = Modifier.height(4.dp))
-        Text("My Story", fontSize = 12.sp)
-      }
-    }
-    
-    val userStories = stories.groupBy { it.userId }
-    userStories.forEach { (userId, userStoriesList) ->
-      val user = allUsers.find { it.uid == userId }
-      if (user != null) {
-        item {
-          StoryItem(user, userStoriesList.first())
-        }
-      }
-    }
-  }
-}
-
-@Composable
-fun StoryItem(user: UserProfile, story: FirebaseManager.Story) {
-  Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(end = 12.dp)) {
-    Box(
-      modifier = Modifier
-        .size(64.dp)
-        .clip(CircleShape)
-        .background(MaterialTheme.colorScheme.primary, CircleShape)
-        .padding(2.dp)
-        .clip(CircleShape)
-        .background(MaterialTheme.colorScheme.surface)
-        .padding(2.dp),
-      contentAlignment = Alignment.Center
-    ) {
-      if (user.profilePicture.isNotEmpty()) {
-        androidx.compose.foundation.Image(
-          painter = coil.compose.rememberAsyncImagePainter(user.profilePicture),
-          contentDescription = null,
-          modifier = Modifier.fillMaxSize().clip(CircleShape),
-          contentScale = androidx.compose.ui.layout.ContentScale.Crop
-        )
-      } else {
-        Box(
-          modifier = Modifier.fillMaxSize().clip(CircleShape).background(MaterialTheme.colorScheme.primaryContainer),
-          contentAlignment = Alignment.Center
-        ) {
-          Text(user.name.take(1).uppercase(), fontWeight = FontWeight.Bold)
-        }
-      }
-    }
-    Spacer(modifier = Modifier.height(4.dp))
-    Text(user.name.split(" ").first(), fontSize = 12.sp)
-  }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun ChatListItem(user: UserProfile, onClick: () -> Unit) {
-  val status by FirebaseManager.getUserOnlineStatus(user.uid).collectAsState(initial = Pair(false, 0L))
-  val isOnline = status.first
-  val lastSeen = status.second
-  
-  val statusText = if (isOnline) "Online" else if (lastSeen > 0) "Last seen ${formatTime(lastSeen)}" else "Offline"
-  
-  Surface(
-    onClick = onClick,
-    modifier = Modifier.fillMaxWidth(),
-    color = Color.Transparent
-  ) {
-    Row(
-      modifier = Modifier.padding(16.dp),
-      verticalAlignment = Alignment.CenterVertically
-    ) {
-      Box(
-        modifier = Modifier.size(50.dp),
-        contentAlignment = Alignment.Center
-      ) {
-        Box(
-          modifier = Modifier.fillMaxSize().clip(CircleShape).background(MaterialTheme.colorScheme.primaryContainer),
-          contentAlignment = Alignment.Center
-        ) {
-          Text(user.name.take(1).uppercase(), color = MaterialTheme.colorScheme.onPrimaryContainer, fontWeight = FontWeight.Bold, fontSize = 20.sp)
-        }
-        if (isOnline) {
-          Box(
-            modifier = Modifier
-              .size(14.dp)
-              .clip(CircleShape)
-              .background(Color.Green)
-              .align(Alignment.BottomEnd)
-          )
-        }
-      }
-      Spacer(modifier = Modifier.width(16.dp))
-      Column(modifier = Modifier.weight(1f)) {
-        Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-          Text(user.name, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-          Text(statusText, fontSize = 12.sp, color = if (isOnline) Color.Green else MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-        Spacer(modifier = Modifier.height(4.dp))
-        Text("@${user.username}", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
-      }
-    }
-  }
-}
-
-fun formatTime(timeMillis: Long): String {
-    val diff = System.currentTimeMillis() - timeMillis
-    return when {
-        diff < 60000 -> "just now"
-        diff < 3600000 -> "${diff / 60000}m ago"
-        diff < 86400000 -> "${diff / 3600000}h ago"
-        else -> "${diff / 86400000}d ago"
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
-@Composable
-fun ChatDetailScreen(navController: NavHostController, targetUserId: String, targetUserName: String) {
-  var message by remember { mutableStateOf("") }
-  var repliedToMessage by remember { mutableStateOf<FirebaseManager.Message?>(null) }
-  
-  val context = LocalContext.current
-  val coroutineScope = rememberCoroutineScope()
-  val auth = remember { FirebaseAuth.getInstance() }
-  val currentUserId = auth.currentUser?.uid ?: return
-  val chatId = remember(currentUserId, targetUserId) { FirebaseManager.getChatId(currentUserId, targetUserId) }
-  
-  val messages by FirebaseManager.getMessages(chatId).collectAsState(initial = emptyList())
-  val isTargetTyping by FirebaseManager.getTypingStatus(targetUserId, currentUserId).collectAsState(initial = false)
-  val status by FirebaseManager.getUserOnlineStatus(targetUserId).collectAsState(initial = Pair(false, 0L))
-  val isTargetOnline = status.first
-  val lastSeen = status.second
-  
-  val statusText = if (isTargetTyping) "typing..." else if (isTargetOnline) "Online" else if (lastSeen > 0) "Last seen ${formatTime(lastSeen)}" else "Offline"
-  
-  val recorder = remember { VoiceRecorder(context) }
-  var isRecording by remember { mutableStateOf(false) }
-  val recordAudioPermission = rememberPermissionState(Manifest.permission.RECORD_AUDIO)
-
-  val imagePickerLauncher = rememberLauncherForActivityResult(
-    contract = ActivityResultContracts.GetContent()
-  ) { uri: Uri? ->
-    uri?.let {
-      coroutineScope.launch {
-        try {
-          val inputStream = context.contentResolver.openInputStream(it)
-          val bytes = inputStream?.readBytes()
-          if (bytes != null) {
-            val url = SupabaseManager.uploadFile("images", "${UUID.randomUUID()}.jpg", bytes)
-            FirebaseManager.sendMessage(chatId, currentUserId, targetUserId, "", imageUrl = url)
-          }
-        } catch (e: Exception) {
-          Toast.makeText(context, "Upload failed: ${e.message}", Toast.LENGTH_SHORT).show()
-        }
-      }
-    }
-  }
-
-  Scaffold(
-    topBar = {
-      TopAppBar(
-        title = { 
-          Column {
-            Text(targetUserName, fontSize = 18.sp)
-            Text(statusText, fontSize = 12.sp, color = if (isTargetTyping || isTargetOnline) Color.Green else MaterialTheme.colorScheme.onSurfaceVariant)
-          }
-        },
-        navigationIcon = {
-          IconButton(onClick = { navController.navigateUp() }) {
-             Text("<", fontWeight = FontWeight.Bold, fontSize = 20.sp, modifier = Modifier.padding(8.dp))
-          }
-        }
-      )
-    },
-    bottomBar = {
-      Column {
-        if (repliedToMessage != null) {
-            Surface(modifier = Modifier.fillMaxWidth().padding(8.dp), color = MaterialTheme.colorScheme.surfaceVariant, shape = RoundedCornerShape(8.dp)) {
-                Row(modifier = Modifier.padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text("Replying to", fontSize = 10.sp, color = MaterialTheme.colorScheme.primary)
-                        Text(repliedToMessage!!.text, maxLines = 1, fontSize = 12.sp)
-                    }
-                    IconButton(onClick = { repliedToMessage = null }) {
-                        Icon(Icons.Filled.Close, contentDescription = "Cancel Reply", modifier = Modifier.size(16.dp))
-                    }
-                }
-            }
-        }
-        
-        Row(
-          modifier = Modifier.fillMaxWidth().padding(8.dp),
-          verticalAlignment = Alignment.CenterVertically
-        ) {
-          IconButton(onClick = { 
-            imagePickerLauncher.launch("image/*")
-          }) {
-            Icon(Icons.Filled.Add, contentDescription = "Add Image")
-          }
-          
-          OutlinedTextField(
-            value = message,
-            onValueChange = { 
-              message = it 
-              FirebaseManager.setTypingStatus(currentUserId, targetUserId, it.isNotEmpty())
-            },
-            modifier = Modifier.weight(1f),
-            placeholder = { Text("Message") },
-            shape = RoundedCornerShape(24.dp)
-          )
-          
-          Spacer(modifier = Modifier.width(8.dp))
-          
-          if (message.isBlank() && !isRecording) {
-            IconButton(onClick = { 
-                if (recordAudioPermission.status.isGranted) {
-                    try {
-                        isRecording = true
-                        recorder.startRecording()
-                    } catch (e: Exception) {
-                        Toast.makeText(context, "Recorder error: ${e.message}", Toast.LENGTH_SHORT).show()
-                    }
-                } else {
-                    recordAudioPermission.launchPermissionRequest()
-                }
-            }) {
-              Icon(Icons.Filled.Mic, contentDescription = "Voice Message")
-            }
-          } else if (isRecording) {
-             Row(verticalAlignment = Alignment.CenterVertically) {
-                 Text("Recording...", color = Color.Red, fontSize = 12.sp)
-                 IconButton(onClick = { 
-                     try {
-                         isRecording = false
-                         val file = recorder.stopRecording()
-                         if (file != null) {
-                             coroutineScope.launch {
-                                 try {
-                                     val url = SupabaseManager.uploadFile("voices", "${UUID.randomUUID()}.mp3", file.readBytes())
-                                     FirebaseManager.sendMessage(chatId, currentUserId, targetUserId, "", voiceUrl = url)
-                                 } catch (e: Exception) {
-                                     Toast.makeText(context, "Upload failed: ${e.message}", Toast.LENGTH_SHORT).show()
-                                 }
-                             }
-                         }
-                     } catch (e: Exception) {
-                         Toast.makeText(context, "Recorder error: ${e.message}", Toast.LENGTH_SHORT).show()
-                     }
-                 }) {
-                   Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Send Voice")
-                 }
-                 IconButton(onClick = { 
-                     isRecording = false
-                     recorder.cancelRecording()
-                 }) {
-                   Icon(Icons.Filled.Delete, contentDescription = "Cancel Voice")
-                 }
-             }
-          } else {
-            FloatingActionButton(
-              onClick = { 
-                if (message.isNotBlank()) {
-                  FirebaseManager.sendMessage(
-                    chatId, 
-                    currentUserId, 
-                    targetUserId, 
-                    message.trim(),
-                    repliedToId = repliedToMessage?.messageId,
-                    repliedToText = repliedToMessage?.text
-                  )
-                  message = ""
-                  repliedToMessage = null
-                  FirebaseManager.setTypingStatus(currentUserId, targetUserId, false)
-                }
-              },
-              modifier = Modifier.size(50.dp)
-            ) {
-              Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Send")
-            }
-          }
-        }
-      }
-    }
-  ) { padding ->
-    LazyColumn(
-      modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp),
-      reverseLayout = true
-    ) {
-      items(messages.size) { index ->
-        val msg = messages[index]
-        MessageBubble(
-            msg = msg, 
-            isMe = msg.senderId == currentUserId,
-            onReply = { repliedToMessage = it },
-            onDelete = { FirebaseManager.deleteMessage(chatId, msg.messageId) }
-        )
-      }
-    }
-  }
-}
-
-@Composable
-fun MessageBubble(msg: FirebaseManager.Message, isMe: Boolean, onReply: (FirebaseManager.Message) -> Unit, onDelete: () -> Unit) {
-    val alignment = if (isMe) Alignment.End else Alignment.Start
-    val bgColor = if (isMe) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant
-    val textColor = if (isMe) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
-    
-    var showMenu by remember { mutableStateOf(false) }
-    
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp), 
-        horizontalAlignment = alignment
-    ) {
-        if (msg.repliedToText != null) {
-            Surface(
-                modifier = Modifier.padding(bottom = 2.dp).padding(horizontal = 4.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                shape = RoundedCornerShape(8.dp)
-            ) {
-                Text(msg.repliedToText, fontSize = 10.sp, modifier = Modifier.padding(4.dp), maxLines = 1)
-            }
-        }
-        
-        Box(
-            modifier = Modifier
-                .clip(RoundedCornerShape(16.dp))
-                .background(bgColor)
-                .clickable { showMenu = true }
-                .padding(12.dp)
-        ) {
-            Column {
-                if (msg.voiceUrl != null) {
-                    VoiceMessagePlayer(msg.voiceUrl, textColor)
-                } else if (msg.imageUrl != null) {
-                    coil.compose.AsyncImage(
-                        model = msg.imageUrl,
-                        contentDescription = null,
-                        modifier = Modifier.size(200.dp).clip(RoundedCornerShape(8.dp)),
-                        contentScale = androidx.compose.ui.layout.ContentScale.Crop
-                    )
-                } else {
-                    Text(msg.text, color = textColor)
-                }
-                Text(
-                    formatTime(msg.timestamp), 
-                    fontSize = 10.sp, 
-                    color = textColor.copy(alpha = 0.7f),
-                    modifier = Modifier.align(Alignment.End)
+                val result = credentialManager.getCredential(
+                    request = request,
+                    context = context as Activity
                 )
-            }
-            
-            DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
-                DropdownMenuItem(
-                    text = { Text("Reply") },
-                    onClick = { 
-                        onReply(msg)
-                        showMenu = false
-                    },
-                    leadingIcon = { Icon(Icons.Filled.Add, contentDescription = null) }
-                )
-                if (isMe) {
-                    DropdownMenuItem(
-                        text = { Text("Delete") },
-                        onClick = { 
-                            onDelete()
-                            showMenu = false
-                        },
-                        leadingIcon = { Icon(Icons.Filled.Delete, contentDescription = null) }
-                    )
-                }
-            }
-        }
-    }
-}
+                val credentialData = result.credential.data
+                val googleIdTokenCredential =
+                    GoogleIdTokenCredential.createFrom(credentialData)
+                val idToken = googleIdTokenCredential.idToken
+                val firebaseCredential = GoogleAuthProvider.getCredential(idToken, null)
 
-@Composable
-fun VoiceMessagePlayer(voiceUrl: String, textColor: Color) {
-    var isPlaying by remember { mutableStateOf(false) }
-    val context = LocalContext.current
-    val mediaPlayer = remember { android.media.MediaPlayer() }
-    
-    DisposableEffect(Unit) {
-        onDispose {
-            mediaPlayer.release()
-        }
-    }
-
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        IconButton(onClick = {
-            if (isPlaying) {
-                mediaPlayer.pause()
-                isPlaying = false
-            } else {
-                try {
-                    mediaPlayer.reset()
-                    mediaPlayer.setDataSource(voiceUrl)
-                    mediaPlayer.setOnErrorListener { _, _, _ ->
-                        isPlaying = false
-                        Toast.makeText(context, "Playback error", Toast.LENGTH_SHORT).show()
-                        true
-                    }
-                    mediaPlayer.prepareAsync()
-                    mediaPlayer.setOnPreparedListener {
-                        it.start()
-                        isPlaying = true
-                    }
-                    mediaPlayer.setOnCompletionListener {
-                        isPlaying = false
-                    }
-                } catch (e: Exception) {
-                    Toast.makeText(context, "Error playing: ${e.message}", Toast.LENGTH_SHORT).show()
-                }
-            }
-        }, modifier = Modifier.size(24.dp)) {
-            Icon(
-                if (isPlaying) Icons.Filled.Stop else Icons.Filled.PlayArrow, 
-                contentDescription = null, 
-                tint = textColor
-            )
-        }
-        Spacer(modifier = Modifier.width(8.dp))
-        Text("Voice Note", color = textColor, fontSize = 14.sp)
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun CommunityScreen(navController: NavHostController) {
-  val groups by FirebaseManager.getGroups().collectAsState(initial = emptyList())
-  var showCreateDialog by remember { mutableStateOf(false) }
-  val auth = remember { FirebaseAuth.getInstance() }
-  val context = LocalContext.current
-  
-  if (showCreateDialog) {
-    var groupName by remember { mutableStateOf("") }
-    var groupDesc by remember { mutableStateOf("") }
-    
-    AlertDialog(
-      onDismissRequest = { showCreateDialog = false },
-      title = { Text("Create New Community") },
-      text = {
-        Column {
-          OutlinedTextField(
-            value = groupName,
-            onValueChange = { groupName = it },
-            label = { Text("Group Name") },
-            modifier = Modifier.fillMaxWidth()
-          )
-          Spacer(modifier = Modifier.height(8.dp))
-          OutlinedTextField(
-            value = groupDesc,
-            onValueChange = { groupDesc = it },
-            label = { Text("Description") },
-            modifier = Modifier.fillMaxWidth()
-          )
-        }
-      },
-      confirmButton = {
-        Button(onClick = {
-          if (groupName.isNotBlank() && auth.currentUser != null) {
-            FirebaseManager.createGroup(groupName, groupDesc, auth.currentUser!!.uid)
-            showCreateDialog = false
-          }
-        }) {
-          Text("Create")
-        }
-      },
-      dismissButton = {
-        TextButton(onClick = { showCreateDialog = false }) {
-          Text("Cancel")
-        }
-      }
-    )
-  }
-  
-  Scaffold(
-    topBar = {
-      TopAppBar(
-        title = { Text("Community & Groups") }
-      )
-    },
-    floatingActionButton = {
-      FloatingActionButton(onClick = { showCreateDialog = true }) {
-        Icon(Icons.Filled.Group, contentDescription = "Create Group")
-      }
-    }
-  ) { padding ->
-    if (groups.isEmpty()) {
-      Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-        Text("No groups available. Create one!", color = MaterialTheme.colorScheme.onSurfaceVariant)
-      }
-    } else {
-      LazyColumn(modifier = Modifier.fillMaxSize().padding(padding)) {
-        items(groups.size) { index ->
-          val group = groups[index]
-          ListItem(
-            headlineContent = { Text(group.name, fontWeight = FontWeight.Bold) },
-            supportingContent = { Text(group.description, maxLines = 1) },
-            leadingContent = {
-              Box(
-                modifier = Modifier.size(50.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primaryContainer),
-                contentAlignment = Alignment.Center
-              ) {
-                Text(group.name.take(1).uppercase(), color = MaterialTheme.colorScheme.onPrimaryContainer, fontWeight = FontWeight.Bold)
-              }
-            },
-            modifier = Modifier.clickable { 
-                navController.navigate("group_detail/${group.groupId}/${group.name}")
-            }
-          )
-        }
-      }
-    }
-  }
-}
-
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
-@Composable
-fun GroupChatDetailScreen(navController: NavHostController, groupId: String, groupName: String) {
-    var message by remember { mutableStateOf("") }
-    val auth = remember { FirebaseAuth.getInstance() }
-    val currentUserId = auth.currentUser?.uid ?: return
-    val messages by FirebaseManager.getGroupMessages(groupId).collectAsState(initial = emptyList())
-    val coroutineScope = rememberCoroutineScope()
-    val context = LocalContext.current
-    val recorder = remember { VoiceRecorder(context) }
-    var isRecording by remember { mutableStateOf(false) }
-    
-    val recordAudioPermission = rememberPermissionState(Manifest.permission.RECORD_AUDIO)
-
-    val imagePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
-        uri?.let {
-            coroutineScope.launch {
-                try {
-                    val inputStream = context.contentResolver.openInputStream(it)
-                    val bytes = inputStream?.readBytes()
-                    if (bytes != null) {
-                        val url = SupabaseManager.uploadFile("group_images", "${UUID.randomUUID()}.jpg", bytes)
-                        FirebaseManager.sendGroupMessage(groupId, currentUserId, "", imageUrl = url)
-                    }
-                } catch (e: Exception) {
-                    Toast.makeText(context, "Upload failed: ${e.message}", Toast.LENGTH_SHORT).show()
-                }
-            }
-        }
-    }
-
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(groupName) },
-                navigationIcon = {
-                    IconButton(onClick = { navController.navigateUp() }) {
-                        Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Back", modifier = Modifier.padding(8.dp))
-                    }
-                }
-            )
-        },
-        bottomBar = {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                OutlinedTextField(
-                    value = message,
-                    onValueChange = { message = it },
-                    modifier = Modifier.weight(1f),
-                    placeholder = { Text("Message group...") },
-                    shape = RoundedCornerShape(24.dp),
-                    leadingIcon = {
-                        IconButton(onClick = { imagePickerLauncher.launch("image/*") }) {
-                            Icon(Icons.Filled.Add, contentDescription = "Add Image")
-                        }
-                    }
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                if (message.isBlank() && !isRecording) {
-                    IconButton(onClick = { 
-                        if (recordAudioPermission.status.isGranted) {
-                            try {
-                                isRecording = true
-                                recorder.startRecording()
-                            } catch (e: Exception) {
-                                Toast.makeText(context, "Recorder error: ${e.message}", Toast.LENGTH_SHORT).show()
-                            }
-                        } else {
-                            recordAudioPermission.launchPermissionRequest()
-                        }
-                    }) { Icon(Icons.Filled.Mic, contentDescription = "Voice") }
-                } else if (isRecording) {
-                    IconButton(onClick = { 
-                        try {
-                            isRecording = false
-                            val file = recorder.stopRecording()
-                            if (file != null) {
+                auth.signInWithCredential(firebaseCredential)
+                    .addOnCompleteListener { task ->
+                        isLoading = false
+                        if (task.isSuccessful) {
+                            val user = task.result?.user
+                            if (user != null) {
+                                FirebaseManager.setPresence(user.uid)
                                 coroutineScope.launch {
                                     try {
-                                        val url = SupabaseManager.uploadFile("group_voices", "${UUID.randomUUID()}.mp3", file.readBytes())
-                                        FirebaseManager.sendGroupMessage(groupId, currentUserId, "", voiceUrl = url)
-                                    } catch (e: Exception) {
-                                        Toast.makeText(context, "Upload failed: ${e.message}", Toast.LENGTH_SHORT).show()
-                                    }
+                                        val token = com.google.firebase.messaging
+                                            .FirebaseMessaging.getInstance().token.await()
+                                        FirebaseManager.updateFcmToken(user.uid, token)
+                                    } catch (_: Exception) {}
                                 }
                             }
-                        } catch (e: Exception) {
-                            Toast.makeText(context, "Recorder error: ${e.message}", Toast.LENGTH_SHORT).show()
+                            navController.navigate("home") {
+                                popUpTo("login") { inclusive = true }
+                            }
+                        } else {
+                            errorMessage =
+                                "Google sign-in failed: ${task.exception?.message}"
                         }
-                    }) { Icon(Icons.Filled.Stop, contentDescription = "Stop", tint = Color.Red) }
+                    }
+            } catch (e: GoogleIdTokenParsingException) {
+                isLoading = false
+                errorMessage = "Invalid Google credential: ${e.message}"
+                Log.w("LoginScreen", "GoogleIdTokenParsingException", e)
+            } catch (e: GetCredentialException) {
+                isLoading = false
+                if (e is androidx.credentials.exceptions.NoCredentialException ||
+                    e.message?.contains("cancel", ignoreCase = true) == true
+                ) {
+                    // User cancelled
                 } else {
-                    IconButton(onClick = {
-                        if (message.isNotBlank()) {
-                            FirebaseManager.sendGroupMessage(groupId, currentUserId, message.trim())
-                            message = ""
+                    errorMessage = "Credential error: ${e.message}"
+                    Log.w("LoginScreen", "GetCredentialException", e)
+                }
+            } catch (e: Exception) {
+                isLoading = false
+                errorMessage = "Sign-in error: ${e.message}"
+                Log.w("LoginScreen", "GoogleSignIn error", e)
+            }
+        }
+    }
+
+    // ── Email login / signup ──
+    fun authenticate() {
+        when {
+            email.isBlank() -> {
+                errorMessage = "Please enter your email"
+                return
+            }
+            password.isBlank() || password.length < 6 -> {
+                errorMessage = "Password must be at least 6 characters"
+                return
+            }
+            !isLoginMode && name.isBlank() -> {
+                errorMessage = "Please enter your name"
+                return
+            }
+            !isLoginMode && dob.isBlank() -> {
+                errorMessage = "Please select your date of birth"
+                return
+            }
+            !isLoginMode && selectedGender.isBlank() -> {
+                errorMessage = "Please select your gender"
+                return
+            }
+        }
+
+        isLoading = true
+        errorMessage = ""
+
+        if (isLoginMode) {
+            auth.signInWithEmailAndPassword(email, password)
+                .addOnCompleteListener { task ->
+                    isLoading = false
+                    if (task.isSuccessful) {
+                        val user = task.result?.user
+                        if (user != null) {
+                            FirebaseManager.setPresence(user.uid)
+                            coroutineScope.launch {
+                                try {
+                                    val token = com.google.firebase.messaging
+                                        .FirebaseMessaging.getInstance().token.await()
+                                    FirebaseManager.updateFcmToken(user.uid, token)
+                                } catch (_: Exception) {}
+                            }
                         }
-                    }) { Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Send") }
+                        navController.navigate("home") {
+                            popUpTo("login") { inclusive = true }
+                        }
+                    } else {
+                        errorMessage = "Login failed: ${task.exception?.message}"
+                    }
+                }
+        } else {
+            auth.createUserWithEmailAndPassword(email, password)
+                .addOnCompleteListener { task ->
+                    if (task.isSuccessful) {
+                        val uid = task.result?.user?.uid ?: return@addOnCompleteListener
+                        val profileUpdates = UserProfileChangeRequest.Builder()
+                            .setDisplayName(name)
+                            .build()
+                        auth.currentUser?.updateProfile(profileUpdates)
+
+                        coroutineScope.launch {
+                            try {
+                                var profileUrl = ""
+                                if (profilePictureUri != null) {
+                                    val inputStream =
+                                        context.contentResolver.openInputStream(
+                                            profilePictureUri!!
+                                        )
+                                    val bytes = inputStream?.readBytes()
+                                    if (bytes != null) {
+                                        profileUrl = SupabaseManager.uploadFile(
+                                            "profiles",
+                                            "${uid}.jpg",
+                                            bytes
+                                        )
+                                    }
+                                }
+
+                                val username = name.lowercase().replace(" ", "") +
+                                        "_" + (1000..9999).random()
+                                val userProfile = UserProfile(
+                                    uid = uid,
+                                    name = name,
+                                    username = username,
+                                    dob = dob,
+                                    gender = selectedGender,
+                                    profilePicture = profileUrl
+                                )
+                                FirebaseManager.firestore
+                                    .collection("users")
+                                    .document(uid)
+                                    .set(userProfile)
+                                    .await()
+
+                                FirebaseManager.setPresence(uid)
+                                isLoading = false
+                                Toast.makeText(
+                                    context,
+                                    "Account created successfully!",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                                navController.navigate("home") {
+                                    popUpTo("login") { inclusive = true }
+                                }
+                            } catch (e: Exception) {
+                                isLoading = false
+                                errorMessage = "Failed to save profile: ${e.message}"
+                            }
+                        }
+                    } else {
+                        isLoading = false
+                        errorMessage = "Sign up failed: ${task.exception?.message}"
+                    }
+                }
+        }
+    }
+
+    // ══════════════  UI  ══════════════
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        Color(0xFFFF6B9D),
+                        Color(0xFFE040FB),
+                        Color(0xFFFF4081)
+                    )
+                )
+            )
+    ) {
+        // ── Decorative background circles ──
+        Box(
+            modifier = Modifier
+                .offset(x = (-60).dp, y = (-80).dp)
+                .size(220.dp)
+                .clip(CircleShape)
+                .background(Color.White.copy(alpha = 0.1f))
+        )
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .offset(x = 40.dp, y = 60.dp)
+                .size(180.dp)
+                .clip(CircleShape)
+                .background(Color.White.copy(alpha = 0.08f))
+        )
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .offset(x = (-30).dp, y = (100).dp)
+                .size(100.dp)
+                .clip(CircleShape)
+                .background(Color.White.copy(alpha = 0.12f))
+        )
+
+        // ── Scrollable main content ──
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 24.dp, vertical = 32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            // ── App title ──
+            Text(
+                text = "EB Chat",
+                fontSize = 38.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = Color.White
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = if (isLoginMode) "Welcome back!" else "Create your account",
+                fontSize = 15.sp,
+                color = Color.White.copy(alpha = 0.85f)
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // ── Glass morphism card ──
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(
+                        MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
+                        RoundedCornerShape(24.dp)
+                    )
+                    .border(
+                        BorderStroke(1.dp, themeColors.glassBorder),
+                        RoundedCornerShape(24.dp)
+                    )
+                    .padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // Card title
+                Text(
+                    text = if (isLoginMode) "Sign In" else "Sign Up",
+                    fontSize = 26.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = if (isLoginMode) "Enter your credentials to continue"
+                    else "Fill in the details to join EB Chat",
+                    fontSize = 13.sp,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
+                )
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                // ── Profile picture (sign-up only) ──
+                AnimatedVisibility(
+                    visible = !isLoginMode,
+                    enter = expandVertically() + fadeIn(),
+                    exit = shrinkVertically() + fadeOut()
+                ) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(96.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    MaterialTheme.colorScheme.primaryContainer,
+                                    CircleShape
+                                )
+                                .border(
+                                    BorderStroke(2.dp, themeColors.glassBorder),
+                                    CircleShape
+                                )
+                                .clickable {
+                                    photoPickerLauncher.launch(
+                                        PickVisualMediaRequest(
+                                            ActivityResultContracts.PickVisualMedia.ImageOnly
+                                        )
+                                    )
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (profilePictureUri != null) {
+                                AsyncImage(
+                                    model = ImageRequest.Builder(context)
+                                        .data(profilePictureUri)
+                                        .crossfade(true)
+                                        .build(),
+                                    contentDescription = "Profile picture",
+                                    modifier = Modifier
+                                        .size(96.dp)
+                                        .clip(CircleShape),
+                                    contentScale = ContentScale.Crop
+                                )
+                            } else {
+                                Icon(
+                                    Icons.Default.Person,
+                                    contentDescription = "Add photo",
+                                    modifier = Modifier.size(40.dp),
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                            // Camera overlay
+                            Box(
+                                modifier = Modifier
+                                    .align(Alignment.BottomEnd)
+                                    .size(30.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.primary)
+                                    .border(
+                                        BorderStroke(2.dp, Color.White),
+                                        CircleShape
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    Icons.Default.CameraAlt,
+                                    contentDescription = "Change photo",
+                                    modifier = Modifier.size(14.dp),
+                                    tint = Color.White
+                                )
+                            }
+                        }
+                        Text(
+                            text = "Add Profile Photo",
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                            modifier = Modifier.padding(top = 4.dp)
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                    }
+                }
+
+                // ── Name field (sign-up only) ──
+                AnimatedVisibility(
+                    visible = !isLoginMode,
+                    enter = expandVertically() + fadeIn(),
+                    exit = shrinkVertically() + fadeOut()
+                ) {
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        OutlinedTextField(
+                            value = name,
+                            onValueChange = { name = it },
+                            label = { Text("Full Name") },
+                            leadingIcon = {
+                                Icon(
+                                    Icons.Default.Person,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                                )
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                focusedLabelColor = MaterialTheme.colorScheme.primary,
+                                cursorColor = MaterialTheme.colorScheme.primary
+                            ),
+                            singleLine = true
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                    }
+                }
+
+                // ── Date of Birth field (sign-up only) ──
+                AnimatedVisibility(
+                    visible = !isLoginMode,
+                    enter = expandVertically() + fadeIn(),
+                    exit = shrinkVertically() + fadeOut()
+                ) {
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        OutlinedTextField(
+                            value = if (dob.isEmpty()) "" else dob,
+                            onValueChange = {},
+                            label = { Text("Date of Birth") },
+                            leadingIcon = {
+                                Icon(
+                                    Icons.Default.CalendarMonth,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                                )
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { showDatePicker = true },
+                            shape = RoundedCornerShape(16.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                focusedLabelColor = MaterialTheme.colorScheme.primary,
+                                cursorColor = MaterialTheme.colorScheme.primary,
+                                disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                                disabledBorderColor = MaterialTheme.colorScheme.outline,
+                                disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                            ),
+                            readOnly = true,
+                            singleLine = true
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                    }
+                }
+
+                // ── Gender selection (sign-up only) ──
+                AnimatedVisibility(
+                    visible = !isLoginMode,
+                    enter = expandVertically() + fadeIn(),
+                    exit = shrinkVertically() + fadeOut()
+                ) {
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            text = "Gender",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                            modifier = Modifier.padding(bottom = 8.dp, start = 4.dp)
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            listOf("Male", "Female", "Other").forEach { gender ->
+                                FilterChip(
+                                    selected = selectedGender == gender,
+                                    onClick = { selectedGender = gender },
+                                    label = {
+                                        Text(
+                                            gender,
+                                            fontSize = 13.sp,
+                                            fontWeight = if (selectedGender == gender)
+                                                FontWeight.SemiBold
+                                            else FontWeight.Normal
+                                        )
+                                    },
+                                    shape = RoundedCornerShape(20.dp),
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                        selectedLabelColor = Color.White
+                                    ),
+                                    border = BorderStroke(
+                                        1.dp,
+                                        if (selectedGender == gender)
+                                            MaterialTheme.colorScheme.primary
+                                        else
+                                            MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+                                    )
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(12.dp))
+                    }
+                }
+
+                // ── Email field ──
+                OutlinedTextField(
+                    value = email,
+                    onValueChange = { email = it },
+                    label = { Text("Email") },
+                    leadingIcon = {
+                        Icon(
+                            Icons.Default.Email,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        focusedLabelColor = MaterialTheme.colorScheme.primary,
+                        cursorColor = MaterialTheme.colorScheme.primary
+                    ),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                    singleLine = true
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // ── Password field ──
+                OutlinedTextField(
+                    value = password,
+                    onValueChange = { password = it },
+                    label = { Text("Password") },
+                    leadingIcon = {
+                        Icon(
+                            Icons.Default.Lock,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        )
+                    },
+                    trailingIcon = {
+                        IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                            Icon(
+                                if (passwordVisible) Icons.Default.VisibilityOff
+                                else Icons.Default.Visibility,
+                                contentDescription = if (passwordVisible) "Hide password"
+                                else "Show password",
+                                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                            )
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        focusedLabelColor = MaterialTheme.colorScheme.primary,
+                        cursorColor = MaterialTheme.colorScheme.primary
+                    ),
+                    visualTransformation = if (passwordVisible)
+                        VisualTransformation.None
+                    else
+                        PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    singleLine = true
+                )
+
+                // Forgot password link (login only)
+                if (isLoginMode) {
+                    TextButton(
+                        onClick = { navController.navigate("forgot_password") },
+                        modifier = Modifier.align(Alignment.End)
+                    ) {
+                        Text(
+                            text = "Forgot Password?",
+                            fontSize = 13.sp,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                } else {
+                    Spacer(modifier = Modifier.height(4.dp))
+                }
+
+                // Error message
+                if (errorMessage.isNotEmpty()) {
+                    Text(
+                        text = errorMessage,
+                        color = MaterialTheme.colorScheme.error,
+                        fontSize = 13.sp,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                // ── Login / Sign Up button ──
+                Button(
+                    onClick = { authenticate() },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = Color.White
+                    ),
+                    shape = RoundedCornerShape(16.dp),
+                    enabled = !isLoading,
+                    elevation = ButtonDefaults.buttonElevation(
+                        defaultElevation = 2.dp
+                    )
+                ) {
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            color = Color.White,
+                            strokeWidth = 2.5.dp
+                        )
+                    } else {
+                        Text(
+                            text = if (isLoginMode) "Login" else "Sign Up",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                // ── Divider with "or" ──
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    HorizontalDivider(
+                        modifier = Modifier.weight(1f),
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
+                    )
+                    Text(
+                        text = "  or  ",
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
+                        fontSize = 13.sp
+                    )
+                    HorizontalDivider(
+                        modifier = Modifier.weight(1f),
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                // ── Google Sign-In / Sign-Up button ──
+                OutlinedButton(
+                    onClick = { signInWithGoogle() },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    border = BorderStroke(
+                        1.dp,
+                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
+                    ),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.onSurface
+                    )
+                ) {
+                    // Google "G" icon
+                    Box(
+                        modifier = Modifier
+                            .size(24.dp)
+                            .clip(CircleShape)
+                            .background(Color.White),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "G",
+                            color = Color(0xFF4285F4),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        text = if (isLoginMode) "Login with Google"
+                        else "Sign up with Google",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                // ── Toggle login / sign-up ──
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = if (isLoginMode) "Don't have an account? "
+                        else "Already have an account? ",
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
+                    )
+                    Text(
+                        text = if (isLoginMode) "Sign Up" else "Login",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.clickable {
+                            isLoginMode = !isLoginMode
+                            errorMessage = ""
+                        }
+                    )
                 }
             }
         }
-    ) { padding ->
-        LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp),
-            reverseLayout = true
-        ) {
-            items(messages.size) { index ->
-                val msg = messages[index]
-                MessageBubble(
-                    msg = msg, 
-                    isMe = msg.senderId == currentUserId,
-                    onReply = {}, 
-                    onDelete = {}
-                )
-            }
-        }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+// ══════════════════════════════════════════════════════════════════
+//  FORGOT PASSWORD SCREEN
+// ══════════════════════════════════════════════════════════════════
+
 @Composable
-fun SettingsScreen(navController: NavHostController) {
-  val context = LocalContext.current
-  val coroutineScope = rememberCoroutineScope()
-  val userProfile by FirebaseManager.getCurrentUserProfile().collectAsState(initial = null)
-  val isDarkTheme by PreferenceManager.isDarkTheme(context).collectAsState(initial = true)
-  
-  Scaffold(
-    topBar = {
-      TopAppBar(
-        title = { Text("Settings & Profile") }
-      )
-    }
-  ) { padding ->
-    LazyColumn(modifier = Modifier.fillMaxSize().padding(padding)) {
-      item {
-        if (userProfile != null) {
-          Column(modifier = Modifier.fillMaxWidth().padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Box(
-              modifier = Modifier.size(100.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primaryContainer),
-              contentAlignment = Alignment.Center
-            ) {
-              if (userProfile!!.profilePicture.isNotEmpty()) {
-                androidx.compose.foundation.Image(
-                  painter = coil.compose.rememberAsyncImagePainter(userProfile!!.profilePicture),
-                  contentDescription = null,
-                  modifier = Modifier.fillMaxSize().clip(CircleShape),
-                  contentScale = androidx.compose.ui.layout.ContentScale.Crop
-                )
-              } else {
-                Text(userProfile!!.name.take(1).uppercase(), color = MaterialTheme.colorScheme.onPrimaryContainer, fontWeight = FontWeight.Bold, fontSize = 36.sp)
-              }
-            }
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(userProfile!!.name, fontWeight = FontWeight.Bold, fontSize = 24.sp)
-            Text("@${userProfile!!.username}", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 16.sp)
-            Spacer(modifier = Modifier.height(24.dp))
-            
-            ListItem(
-              headlineContent = { Text("Email") },
-              supportingContent = { Text(FirebaseAuth.getInstance().currentUser?.email ?: "") },
-              leadingContent = { Icon(Icons.Filled.AccountCircle, contentDescription = null) }
-            )
-            ListItem(
-              headlineContent = { Text("Date of Birth") },
-              supportingContent = { Text(userProfile!!.dob) },
-              leadingContent = { Icon(Icons.Filled.AccountCircle, contentDescription = null) }
-            )
-            ListItem(
-              headlineContent = { Text("Gender") },
-              supportingContent = { Text(userProfile!!.gender) },
-              leadingContent = { Icon(Icons.Filled.AccountCircle, contentDescription = null) }
-            )
-          }
+fun ForgotPasswordScreen(navController: NavHostController) {
+    var email by rememberSaveable { mutableStateOf("") }
+    var isLoading by rememberSaveable { mutableStateOf(false) }
+    var errorMessage by rememberSaveable { mutableStateOf("") }
+    var successMessage by rememberSaveable { mutableStateOf("") }
+
+    val auth = FirebaseManager.auth
+    val themeColors = LocalThemeColors.current
+
+    fun sendResetEmail() {
+        if (email.isBlank()) {
+            errorMessage = "Please enter your email address"
+            return
         }
-      }
-      
-      item {
-        Divider()
-        ListItem(
-          headlineContent = { Text("Notifications") },
-          leadingContent = { Icon(Icons.Filled.Settings, contentDescription = null) },
-          trailingContent = { Switch(checked = true, onCheckedChange = {}) }
-        )
-        ListItem(
-          headlineContent = { Text("Dark Mode") },
-          leadingContent = { Icon(Icons.Filled.Settings, contentDescription = null) },
-          trailingContent = { 
-            Switch(
-              checked = isDarkTheme, 
-              onCheckedChange = { 
-                coroutineScope.launch { PreferenceManager.setDarkTheme(context, it) } 
-              }
-            ) 
-          }
-        )
-        ListItem(
-          headlineContent = { Text("Logout") },
-          leadingContent = { Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = null) },
-          modifier = Modifier.clickable { 
-              FirebaseAuth.getInstance().signOut()
-              navController.navigate("login") { popUpTo(0) }
-          }
-        )
-        ListItem(
-          headlineContent = { Text("App Version") },
-          supportingContent = { Text("1.0.0") },
-          leadingContent = { Icon(Icons.Filled.Settings, contentDescription = null) }
-        )
-      }
+        isLoading = true
+        errorMessage = ""
+        successMessage = ""
+
+        auth.sendPasswordResetEmail(email)
+            .addOnCompleteListener { task ->
+                isLoading = false
+                if (task.isSuccessful) {
+                    successMessage = "Password reset link sent to $email"
+                } else {
+                    errorMessage =
+                        "Failed to send reset email: ${task.exception?.message}"
+                }
+            }
     }
-  }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        Color(0xFFFF6B9D),
+                        Color(0xFFE040FB)
+                    )
+                )
+            )
+    ) {
+        // ── Decorative circles ──
+        Box(
+            modifier = Modifier
+                .offset(x = (-50).dp, y = (-70).dp)
+                .size(200.dp)
+                .clip(CircleShape)
+                .background(Color.White.copy(alpha = 0.1f))
+        )
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .offset(x = 40.dp, y = 50.dp)
+                .size(160.dp)
+                .clip(CircleShape)
+                .background(Color.White.copy(alpha = 0.08f))
+        )
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .offset(x = (-60).dp, y = (120).dp)
+                .size(90.dp)
+                .clip(CircleShape)
+                .background(Color.White.copy(alpha = 0.12f))
+        )
+
+        // ── Glass card ──
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(
+                        MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
+                        RoundedCornerShape(24.dp)
+                    )
+                    .border(
+                        BorderStroke(1.dp, themeColors.glassBorder),
+                        RoundedCornerShape(24.dp)
+                    )
+                    .padding(28.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // Lock icon
+                Box(
+                    modifier = Modifier
+                        .size(72.dp)
+                        .clip(CircleShape)
+                        .background(
+                            MaterialTheme.colorScheme.primaryContainer,
+                            CircleShape
+                        )
+                        .border(
+                            BorderStroke(2.dp, themeColors.glassBorder),
+                            CircleShape
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Default.Lock,
+                        contentDescription = null,
+                        modifier = Modifier.size(36.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                Text(
+                    text = "Forgot Password?",
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                    text = "Enter your email address and we'll send you a link to reset your password.",
+                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
+                    textAlign = TextAlign.Center,
+                    lineHeight = 22.sp
+                )
+
+                Spacer(modifier = Modifier.height(28.dp))
+
+                // Email field
+                OutlinedTextField(
+                    value = email,
+                    onValueChange = { email = it },
+                    label = { Text("Email Address") },
+                    leadingIcon = {
+                        Icon(
+                            Icons.Default.Email,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        focusedLabelColor = MaterialTheme.colorScheme.primary,
+                        cursorColor = MaterialTheme.colorScheme.primary
+                    ),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                    singleLine = true
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Error message
+                if (errorMessage.isNotEmpty()) {
+                    Text(
+                        text = errorMessage,
+                        color = MaterialTheme.colorScheme.error,
+                        fontSize = 13.sp,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+
+                // Success message
+                if (successMessage.isNotEmpty()) {
+                    Text(
+                        text = successMessage,
+                        color = Color(0xFF4CAF50),
+                        fontSize = 13.sp,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                // Send Reset Link button
+                Button(
+                    onClick = { sendResetEmail() },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = Color.White
+                    ),
+                    shape = RoundedCornerShape(16.dp),
+                    enabled = !isLoading,
+                    elevation = ButtonDefaults.buttonElevation(
+                        defaultElevation = 2.dp
+                    )
+                ) {
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            color = Color.White,
+                            strokeWidth = 2.5.dp
+                        )
+                    } else {
+                        Text(
+                            text = "Send Reset Link",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Back to Login
+                TextButton(
+                    onClick = { navController.popBackStack() }
+                ) {
+                    Text(
+                        text = "Back to Login",
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+        }
+    }
 }
 
+// ══════════════════════════════════════════════════════════════════
+//  UTILITY FUNCTIONS
+// ══════════════════════════════════════════════════════════════════
+
+fun formatTime(timeMillis: Long): String {
+    val sdf = SimpleDateFormat("h:mm a", Locale.getDefault())
+    return sdf.format(Date(timeMillis))
+}
+
+fun formatDate(timeMillis: Long): String {
+    val sdf = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
+    return sdf.format(Date(timeMillis))
+}
