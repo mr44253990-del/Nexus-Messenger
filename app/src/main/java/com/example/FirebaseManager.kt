@@ -23,7 +23,10 @@ data class UserProfile(
     val profilePicture: String = "",
     val online: Boolean = false,
     val lastSeen: Long = 0,
-    val fcmToken: String = ""
+    val fcmToken: String = "",
+    val mutedUsers: List<String> = emptyList(),
+    val blockedUsers: List<String> = emptyList(),
+    val themeName: String = "Pink Glass"
 )
 
 object FirebaseManager {
@@ -50,6 +53,92 @@ object FirebaseManager {
                 if (receiverId != null) put("receiverId", receiverId)
             }
         )
+    }
+
+
+
+    data class SocialPost(
+        val postId: String = "",
+        val authorId: String = "",
+        val title: String = "",
+        val body: String = "",
+        val tags: List<String> = emptyList(),
+        val mediaUrl: String = "",
+        val mediaType: String = "image",
+        val isPrivate: Boolean = false,
+        val views: Long = 0,
+        val reactions: Map<String, String> = emptyMap(),
+        val createdAt: Long = System.currentTimeMillis()
+    )
+
+    data class ActivityNotification(
+        val notificationId: String = "",
+        val userId: String = "",
+        val actorId: String = "",
+        val type: String = "",
+        val title: String = "",
+        val body: String = "",
+        val targetId: String = "",
+        val read: Boolean = false,
+        val createdAt: Long = System.currentTimeMillis()
+    )
+
+    fun getSocialPosts(): Flow<List<SocialPost>> = callbackFlow {
+        val listener = firestore.collection("posts")
+            .whereEqualTo("isPrivate", false)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    Log.e("Firestore", "Failed to load posts: ${error.message}")
+                    trySend(emptyList())
+                    return@addSnapshotListener
+                }
+                val posts = snapshot?.documents
+                    ?.mapNotNull { it.toObject(SocialPost::class.java) }
+                    ?.sortedByDescending { it.createdAt }
+                    ?: emptyList()
+                trySend(posts)
+            }
+        awaitClose { listener.remove() }
+    }
+
+    fun getNotifications(uid: String): Flow<List<ActivityNotification>> = callbackFlow {
+        val listener = firestore.collection("users").document(uid).collection("notifications")
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    Log.e("Firestore", "Failed to load notifications: ${error.message}")
+                    trySend(emptyList())
+                    return@addSnapshotListener
+                }
+                val notifications = snapshot?.documents
+                    ?.mapNotNull { it.toObject(ActivityNotification::class.java) }
+                    ?.sortedByDescending { it.createdAt }
+                    ?: emptyList()
+                trySend(notifications)
+            }
+        awaitClose { listener.remove() }
+    }
+
+    fun createPost(authorId: String, title: String, body: String, tags: List<String>, mediaUrl: String, mediaType: String) {
+        val ref = firestore.collection("posts").document()
+        ref.set(SocialPost(ref.id, authorId, title, body, tags, mediaUrl, mediaType))
+    }
+
+    fun reactToPost(postId: String, uid: String, emoji: String) {
+        firestore.collection("posts").document(postId).update("reactions.$uid", emoji)
+    }
+
+    fun incrementPostView(postId: String) {
+        firestore.collection("posts").document(postId)
+            .update("views", com.google.firebase.firestore.FieldValue.increment(1))
+            .addOnFailureListener { Log.e("Firestore", "Failed to increment post view: ${it.message}") }
+    }
+
+    fun setPostPrivate(postId: String, isPrivate: Boolean) {
+        firestore.collection("posts").document(postId).update("isPrivate", isPrivate)
+    }
+
+    fun deletePost(postId: String) {
+        firestore.collection("posts").document(postId).delete()
     }
 
     fun getAllUsersFlow(): Flow<List<UserProfile>> = callbackFlow {
@@ -153,10 +242,24 @@ object FirebaseManager {
 
     fun blockUser(uid: String, targetId: String) {
         rtdb.child("blocks").child(uid).child(targetId).setValue(true)
+        firestore.collection("users").document(uid).update("blockedUsers", com.google.firebase.firestore.FieldValue.arrayUnion(targetId))
     }
 
     fun unblockUser(uid: String, targetId: String) {
         rtdb.child("blocks").child(uid).child(targetId).removeValue()
+        firestore.collection("users").document(uid).update("blockedUsers", com.google.firebase.firestore.FieldValue.arrayRemove(targetId))
+    }
+
+    fun muteUser(uid: String, targetId: String) {
+        firestore.collection("users").document(uid).update("mutedUsers", com.google.firebase.firestore.FieldValue.arrayUnion(targetId))
+    }
+
+    fun unmuteUser(uid: String, targetId: String) {
+        firestore.collection("users").document(uid).update("mutedUsers", com.google.firebase.firestore.FieldValue.arrayRemove(targetId))
+    }
+
+    fun updateProfile(uid: String, name: String, profilePicture: String, themeName: String) {
+        firestore.collection("users").document(uid).update(mapOf("name" to name, "profilePicture" to profilePicture, "themeName" to themeName))
     }
 
     fun isBlocked(uid: String, targetId: String): Flow<Boolean> = callbackFlow {
